@@ -12,7 +12,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { toast } from '@/hooks/use-toast';
 
 interface AuthContextType {
@@ -45,6 +45,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   async function register(email: string, password: string) {
+    if (!isFirebaseConfigured || !auth) {
+      toast({
+        title: "Configuration Error",
+        description: "Firebase is not properly configured. Please check the console for setup instructions.",
+        variant: "destructive",
+      });
+      throw new Error('Firebase not configured');
+    }
+    
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       await sendEmailVerification(user);
@@ -64,6 +73,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   async function login(email: string, password: string) {
+    if (!isFirebaseConfigured || !auth) {
+      toast({
+        title: "Configuration Error",
+        description: "Firebase is not properly configured. Please check the console for setup instructions.",
+        variant: "destructive",
+      });
+      throw new Error('Firebase not configured');
+    }
+    
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({
@@ -169,6 +187,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   useEffect(() => {
+    if (!isFirebaseConfigured || !auth) {
+      console.warn('Firebase not configured, skipping auth state listener');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);

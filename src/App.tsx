@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RequireAuth } from "@/components/AuthGuard";
+import { RequireOnboarding } from "@/components/RequireOnboarding";
 import { Navigation } from "@/components/Navigation";
 import Index from "./pages/Index";
 import { Workout } from "./pages/Workout";
@@ -12,6 +13,7 @@ import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import { ForgotPassword } from "./pages/ForgotPassword";
+import { Onboarding } from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,13 +31,25 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             
-            {/* Protected routes */}
+            {/* Onboarding route (requires auth but not completed onboarding) */}
+            <Route 
+              path="/onboarding" 
+              element={
+                <RequireAuth>
+                  <Onboarding />
+                </RequireAuth>
+              } 
+            />
+            
+            {/* Protected routes (requires auth AND completed onboarding) */}
             <Route 
               path="/" 
               element={
                 <RequireAuth>
-                  <Navigation />
-                  <Index />
+                  <RequireOnboarding>
+                    <Navigation />
+                    <Index />
+                  </RequireOnboarding>
                 </RequireAuth>
               } 
             />
@@ -43,8 +57,10 @@ const App = () => (
               path="/workout" 
               element={
                 <RequireAuth>
-                  <Navigation />
-                  <Workout />
+                  <RequireOnboarding>
+                    <Navigation />
+                    <Workout />
+                  </RequireOnboarding>
                 </RequireAuth>
               } 
             />
@@ -52,7 +68,9 @@ const App = () => (
               path="/profile" 
               element={
                 <RequireAuth>
-                  <Profile />
+                  <RequireOnboarding>
+                    <Profile />
+                  </RequireOnboarding>
                 </RequireAuth>
               } 
             />

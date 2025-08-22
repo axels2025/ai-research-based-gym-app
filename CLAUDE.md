@@ -101,6 +101,35 @@ npm run preview
 - Account management (change email/password)
 - User-specific workout data storage
 - Automatic default program initialization for new users
+- Comprehensive user onboarding system with fitness profiling
+
+## User Onboarding System
+
+### Onboarding Flow
+- **7-step guided setup**: Personal info → Goals → Experience → Schedule → Health → Preferences → Review
+- **Route Protection**: `/onboarding` requires auth, main app requires completed onboarding
+- **Progressive Saving**: Each step saves to Firestore, users can resume later
+- **Smart Validation**: Step-by-step validation with helpful error messages
+
+### Onboarding Components
+- `OnboardingLayout`: Consistent progress bar, navigation, and step management
+- `MultiSelectGoals`: Visual goal selection with icons and descriptions
+- `EquipmentSelector`: Interactive equipment access selection
+- `TimePreferenceSelector`: Schedule availability with day/time selection
+- Smart form components with visual feedback and validation
+
+### Profile Data Collection
+- **Personal Info**: Age, sex, height, weight, activity level, BMI calculation
+- **Goals**: Primary/secondary goals, timeline, body composition targets
+- **Experience**: Training level, equipment access, workout location, previous programs
+- **Availability**: Sessions/week, duration, preferred times, available days
+- **Health**: Injury history, limitations, medical conditions, pain areas
+- **Preferences**: Workout split, rep ranges, intensity, favorite/disliked exercises
+
+### AI Integration Ready
+- `generateAIPromptData()`: Formats complete user profile for Claude AI workout generation
+- Structured data export for personalized program creation
+- Goal mapping and constraint documentation for AI context
 
 ## Adding New Features
 
