@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { ProgramOverview } from "@/components/ProgramOverview";
@@ -5,40 +6,69 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dumbbell, Brain, TrendingUp, Zap, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserPrograms, getUserWorkouts, initializeDefaultProgram, type WorkoutProgram, type Workout } from "@/lib/firestore";
 import heroImage from "@/assets/gym-hero.jpg";
-
-const mockWorkouts = [
-  {
-    title: "Push Day - Upper Body",
-    week: 1,
-    day: 1,
-    exercises: 6,
-    estimatedTime: 75,
-    isActive: true
-  },
-  {
-    title: "Pull Day - Back & Biceps",
-    week: 1,
-    day: 2,
-    exercises: 5,
-    estimatedTime: 65,
-    isActive: false
-  },
-  {
-    title: "Legs & Core",
-    week: 1,
-    day: 3,
-    exercises: 7,
-    estimatedTime: 85,
-    isActive: false
-  }
-];
 
 const Index = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [program, setProgram] = useState<WorkoutProgram | null>(null);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleStartWorkout = () => {
-    navigate("/workout");
+  useEffect(() => {
+    async function loadUserData() {
+      if (!currentUser) return;
+
+      try {
+        setLoading(true);
+        
+        // Get user's programs
+        const programs = await getUserPrograms(currentUser.uid);
+        
+        if (programs.length === 0) {
+          // Initialize default program for new users
+          const { program: newProgram, workouts: newWorkouts } = await initializeDefaultProgram(currentUser.uid);
+          setProgram(newProgram);
+          setWorkouts(newWorkouts);
+        } else {
+          // Use existing program
+          const currentProgram = programs[0]; // Get the most recent program
+          setProgram(currentProgram);
+          
+          // Get workouts for this program
+          const userWorkouts = await getUserWorkouts(currentUser.uid, currentProgram.id);
+          setWorkouts(userWorkouts);
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to mock data if there's an error
+        setProgram({
+          id: 'fallback',
+          userId: currentUser.uid,
+          name: "Strength & Hypertrophy Program",
+          currentWeek: 1,
+          totalWeeks: 6,
+          workoutsCompleted: 0,
+          totalWorkouts: 18,
+          createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as unknown as import('firebase/firestore').Timestamp,
+          updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as unknown as import('firebase/firestore').Timestamp,
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUserData();
+  }, [currentUser]);
+
+  const handleStartWorkout = (workoutId?: string) => {
+    if (workoutId) {
+      navigate(`/workout?id=${workoutId}`);
+    } else {
+      navigate("/workout");
+    }
   };
 
   return (
@@ -86,16 +116,22 @@ const Index = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
           {/* Program Overview */}
-          <div className="mb-12">
-            <ProgramOverview
-              programName="Strength & Hypertrophy Program"
-              currentWeek={1}
-              totalWeeks={6}
-              workoutsCompleted={3}
-              totalWorkouts={18}
-              nextWorkout="Push Day - Upper Body"
-            />
-          </div>
+          {loading ? (
+            <div className="mb-12 animate-pulse">
+              <div className="h-32 bg-muted rounded-lg"></div>
+            </div>
+          ) : program ? (
+            <div className="mb-12">
+              <ProgramOverview
+                programName={program.name}
+                currentWeek={program.currentWeek}
+                totalWeeks={program.totalWeeks}
+                workoutsCompleted={program.workoutsCompleted}
+                totalWorkouts={program.totalWorkouts}
+                nextWorkout={workouts.find(w => !w.isCompleted)?.title || "No upcoming workouts"}
+              />
+            </div>
+          ) : null}
 
           {/* Current Week Workouts */}
           <div className="mb-12">
@@ -107,20 +143,30 @@ const Index = () => {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mockWorkouts.map((workout, index) => (
-                <WorkoutCard
-                  key={index}
-                  title={workout.title}
-                  week={workout.week}
-                  day={workout.day}
-                  exercises={workout.exercises}
-                  estimatedTime={workout.estimatedTime}
-                  isActive={workout.isActive}
-                  onStart={handleStartWorkout}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-48 bg-muted rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {workouts.map((workout, index) => (
+                  <WorkoutCard
+                    key={workout.id}
+                    title={workout.title}
+                    week={workout.week}
+                    day={workout.day}
+                    exercises={workout.exercises}
+                    estimatedTime={workout.estimatedTime}
+                    isActive={!workout.isCompleted && index === 0}
+                    onStart={() => handleStartWorkout(workout.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* AI Insights */}
