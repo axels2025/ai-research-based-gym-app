@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExerciseInput } from "@/components/ExerciseInput";
 import { ExerciseTimer } from "@/components/ExerciseTimer";
+import { ExerciseSubstitutionModal } from "@/components/ExerciseSubstitutionModal";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { type ExerciseAlternative } from "@/lib/exerciseSubstitution";
 
 const mockWorkout = {
   name: "Push Day - Upper Body",
@@ -50,9 +52,11 @@ export const Workout = () => {
   const [currentSet, setCurrentSet] = useState(1);
   const [showTimer, setShowTimer] = useState(false);
   const [completedSets, setCompletedSets] = useState<Array<{weight: number, reps: number}>>([]);
+  const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
+  const [workout, setWorkout] = useState(mockWorkout);
 
-  const currentExercise = mockWorkout.exercises[currentExerciseIndex];
-  const isLastExercise = currentExerciseIndex === mockWorkout.exercises.length - 1;
+  const currentExercise = workout.exercises[currentExerciseIndex];
+  const isLastExercise = currentExerciseIndex === workout.exercises.length - 1;
   const isLastSet = currentSet === currentExercise.sets;
 
   const handleSetComplete = (weight: number, reps: number) => {
@@ -79,6 +83,26 @@ export const Workout = () => {
     setShowTimer(false);
   };
 
+  const handleSubstituteExercise = () => {
+    setShowSubstitutionModal(true);
+  };
+
+  const handleExerciseSubstitution = (selectedAlternative: ExerciseAlternative) => {
+    const updatedExercises = [...workout.exercises];
+    updatedExercises[currentExerciseIndex] = {
+      ...updatedExercises[currentExerciseIndex],
+      name: selectedAlternative.name,
+      // Keep same sets/reps but adjust other properties if needed
+    };
+    
+    setWorkout({
+      ...workout,
+      exercises: updatedExercises
+    });
+    
+    setShowSubstitutionModal(false);
+  };
+
   return (
     <div className="min-h-screen bg-[var(--gradient-background)] p-4">
       <div className="max-w-2xl mx-auto">
@@ -92,12 +116,20 @@ export const Workout = () => {
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{mockWorkout.name}</h1>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">{workout.name}</h1>
             <p className="text-muted-foreground">
-              Exercise {currentExerciseIndex + 1} of {mockWorkout.exercises.length}
+              Exercise {currentExerciseIndex + 1} of {workout.exercises.length}
             </p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSubstituteExercise}
+          >
+            <RotateCcw className="w-4 h-4 mr-1" />
+            Substitute
+          </Button>
         </div>
 
         {/* Progress */}
@@ -105,14 +137,14 @@ export const Workout = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Workout Progress</span>
             <span className="text-sm text-muted-foreground">
-              {Math.round(((currentExerciseIndex + (currentSet / currentExercise.sets)) / mockWorkout.exercises.length) * 100)}%
+              {Math.round(((currentExerciseIndex + (currentSet / currentExercise.sets)) / workout.exercises.length) * 100)}%
             </span>
           </div>
           <div className="w-full bg-muted rounded-full h-2">
             <div 
               className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-500"
               style={{ 
-                width: `${((currentExerciseIndex + (currentSet / currentExercise.sets)) / mockWorkout.exercises.length) * 100}%` 
+                width: `${((currentExerciseIndex + (currentSet / currentExercise.sets)) / workout.exercises.length) * 100}%` 
               }}
             />
           </div>
@@ -142,7 +174,7 @@ export const Workout = () => {
         <Card className="p-4 mt-6">
           <h3 className="font-semibold mb-3">Upcoming Exercises</h3>
           <div className="space-y-2">
-            {mockWorkout.exercises.slice(currentExerciseIndex + 1).map((exercise, index) => (
+            {workout.exercises.slice(currentExerciseIndex + 1).map((exercise, index) => (
               <div key={index} className="flex justify-between items-center text-sm">
                 <span>{exercise.name}</span>
                 <span className="text-muted-foreground">
@@ -153,6 +185,17 @@ export const Workout = () => {
           </div>
         </Card>
       </div>
+
+      {/* Exercise Substitution Modal */}
+      <ExerciseSubstitutionModal
+        open={showSubstitutionModal}
+        onOpenChange={setShowSubstitutionModal}
+        exerciseName={currentExercise.name}
+        targetMuscles={['chest', 'shoulders', 'triceps']} // Would be dynamic based on exercise
+        availableEquipment={['barbell', 'dumbbells', 'bodyweight', 'bench']}
+        onSubstitute={handleExerciseSubstitution}
+        reason="preference"
+      />
     </div>
   );
 };

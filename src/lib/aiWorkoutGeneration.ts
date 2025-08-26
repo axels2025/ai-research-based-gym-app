@@ -1,5 +1,6 @@
 import { UserProfile, generateAIPromptData } from './userProfiles';
 import { WorkoutProgram, Workout, Exercise, createWorkoutProgram, createWorkout } from './firestore';
+import { config } from './config';
 import { Timestamp } from 'firebase/firestore';
 
 // TypeScript types for Claude AI API
@@ -85,13 +86,15 @@ const getRetryDelay = (attempt: number): number => {
   return exponentialDelay + Math.random() * 1000;
 };
 
-// Claude AI API integration
+// Claude AI API integration - updated to use config
 async function callClaudeAPI(prompt: string, retryAttempt = 0): Promise<ClaudeResponse> {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+  let apiKey: string;
   
-  if (!apiKey) {
+  try {
+    apiKey = config.anthropic.apiKey;
+  } catch (error) {
     throw new AIWorkoutGenerationError(
-      'Anthropic API key not found. Please add VITE_ANTHROPIC_API_KEY to your environment variables.',
+      'Anthropic API key not found. Please configure your API key.',
       'API_ERROR'
     );
   }

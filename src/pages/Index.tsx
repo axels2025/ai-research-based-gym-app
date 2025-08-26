@@ -7,7 +7,7 @@ import { RotationStatus } from "@/components/RotationStatus";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dumbbell, Brain, TrendingUp, Zap, Settings, Sparkles, RotateCcw, Plus } from "lucide-react";
+import { Dumbbell, Brain, TrendingUp, Zap, Settings, Sparkles, RotateCcw, Plus, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveProgram, getUserWorkouts, initializeDefaultProgram, type WorkoutProgram, type Workout } from "@/lib/firestore";
@@ -92,7 +92,7 @@ const Index = () => {
 
   const handleStartWorkout = (workoutId?: string) => {
     if (workoutId) {
-      navigate(`/workout?id=${workoutId}`);
+      navigate(`/pre-workout?id=${workoutId}`);
     } else {
       navigate("/workout");
     }
@@ -226,6 +226,14 @@ const Index = () => {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/program-overview')}
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Program Overview
+                </Button>
                 
                 <Button variant="outline">
                   <Settings className="w-4 h-4 mr-2" />

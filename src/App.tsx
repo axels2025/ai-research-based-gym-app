@@ -9,6 +9,8 @@ import { RequireOnboarding } from "@/components/RequireOnboarding";
 import { Navigation } from "@/components/Navigation";
 import Index from "./pages/Index";
 import { Workout } from "./pages/Workout";
+import ProgramOverview from "./pages/ProgramOverview";
+import PreWorkout from "./pages/PreWorkout";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
@@ -60,6 +62,28 @@ const App = () => (
                   <RequireOnboarding>
                     <Navigation />
                     <Workout />
+                  </RequireOnboarding>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/program-overview" 
+              element={
+                <RequireAuth>
+                  <RequireOnboarding>
+                    <Navigation />
+                    <ProgramOverview />
+                  </RequireOnboarding>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/pre-workout" 
+              element={
+                <RequireAuth>
+                  <RequireOnboarding>
+                    <Navigation />
+                    <PreWorkout />
                   </RequireOnboarding>
                 </RequireAuth>
               } 
