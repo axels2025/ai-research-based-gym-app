@@ -229,8 +229,8 @@ export const PreWorkoutOverview = ({
         </Card>
       )}
 
-      {/* Previous Performance Comparison */}
-      {workout.previousWorkoutComparison && (
+      {/* Previous Performance Comparison OR First Time Message */}
+      {workout.previousWorkoutComparison ? (
         <Card className="p-4">
           <h3 className="font-semibold mb-3 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
@@ -267,6 +267,17 @@ export const PreWorkoutOverview = ({
               </p>
             </div>
           </div>
+        </Card>
+      ) : (
+        <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+          <h3 className="font-semibold mb-2 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-blue-600" />
+            First Time Setup
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            This is your first time doing this workout! 🎉 
+            We'll track your performance and provide personalized progression suggestions for next time.
+          </p>
         </Card>
       )}
 

@@ -25,7 +25,8 @@ export const ExerciseInput = ({
   onComplete,
   currentSet
 }: ExerciseInputProps) => {
-  const [weight, setWeight] = useState(suggestedWeight);
+  // Use 0 as default if no suggested weight, user will need to input their starting weight
+  const [weight, setWeight] = useState(suggestedWeight > 0 ? suggestedWeight : 0);
   const [reps, setReps] = useState(targetReps);
 
   const handleWeightChange = (delta: number) => {
@@ -52,7 +53,7 @@ export const ExerciseInput = ({
           </Badge>
         </div>
         
-        {lastWeight > 0 && (
+        {lastWeight > 0 ? (
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
             <div className="flex items-center gap-1">
               <Target className="w-4 h-4" />
@@ -64,6 +65,12 @@ export const ExerciseInput = ({
                 <span>+{weightIncrease} lbs progression</span>
               </div>
             )}
+          </div>
+        ) : (
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg mb-4">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              💡 <strong>First time?</strong> Start with a weight you can comfortably lift for all sets. We'll track your progress for next time!
+            </p>
           </div>
         )}
       </div>

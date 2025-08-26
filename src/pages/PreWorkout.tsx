@@ -146,31 +146,36 @@ const PreWorkout = () => {
     performanceRecords: any[],
     profile: UserProfile | null
   ): Promise<WorkoutOverview> => {
-    // Transform exercises to include enhanced data
+    // Check if user has any previous performance data
+    const hasHistoricalData = performanceRecords && performanceRecords.length > 0;
+    
+    // Transform exercises to include enhanced data WITHOUT dummy values
     const enhancedExercises: ExercisePreview[] = [
       {
         id: '1',
         name: 'Barbell Bench Press',
         sets: 4,
         reps: '8-10',
-        weight: 185,
+        weight: hasHistoricalData ? 185 : undefined, // Only show weight if user has history
         restTime: 180,
         notes: 'Focus on controlled eccentric',
-        previousPerformance: {
+        // Only include previous performance if user actually has data
+        previousPerformance: hasHistoricalData ? {
           weight: 180,
           reps: 8,
           sets: 4,
           rpe: 8,
           date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        },
-        progressionSuggestion: {
+        } : undefined,
+        // Only show progression suggestions if user has performance history
+        progressionSuggestion: hasHistoricalData ? {
           type: 'weight',
           currentValue: 180,
           suggestedValue: 185,
           reason: 'Consistent performance over 3 weeks - ready for 5lb increase',
           confidence: 'high',
           implementationNotes: 'Add 5lbs to current weight. Maintain rep range.'
-        },
+        } : undefined,
         estimatedRestTime: 180,
         muscleActivation: ['chest', 'shoulders', 'triceps'],
         difficultyLevel: 'intermediate',
@@ -186,9 +191,11 @@ const PreWorkout = () => {
         name: 'Overhead Press',
         sets: 3,
         reps: '10-12',
-        weight: 95,
+        weight: hasHistoricalData ? 95 : undefined, // Only show weight if user has history
         restTime: 120,
         notes: 'Strict form - no leg drive',
+        previousPerformance: undefined, // No dummy data for new users
+        progressionSuggestion: undefined, // No suggestions without history
         estimatedRestTime: 120,
         muscleActivation: ['shoulders', 'triceps', 'core'],
         difficultyLevel: 'intermediate',
@@ -204,9 +211,11 @@ const PreWorkout = () => {
         name: 'Incline Dumbbell Press',
         sets: 3,
         reps: '12-15',
-        weight: 70,
+        weight: hasHistoricalData ? 70 : undefined, // Only show weight if user has history
         restTime: 90,
         notes: '45-degree incline',
+        previousPerformance: undefined, // No dummy data for new users
+        progressionSuggestion: undefined, // No suggestions without history
         estimatedRestTime: 90,
         muscleActivation: ['upper chest', 'shoulders', 'triceps'],
         difficultyLevel: 'beginner',
@@ -237,11 +246,12 @@ const PreWorkout = () => {
       workoutIntensity: 'moderate' as const,
       targetMuscleGroups: ['chest', 'shoulders', 'triceps'],
       equipmentNeeded: ['barbell', 'bench', 'dumbbells'],
-      previousWorkoutComparison: {
+      // Only show previous workout comparison if user has historical data
+      previousWorkoutComparison: hasHistoricalData ? {
         lastCompleted: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         performanceChange: 'improved' as const,
         volumeChange: 8.5
-      }
+      } : undefined
     };
   };
 

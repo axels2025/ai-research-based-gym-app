@@ -8,43 +8,44 @@ import { ArrowLeft, CheckCircle2, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { type ExerciseAlternative } from "@/lib/exerciseSubstitution";
 
-const mockWorkout = {
+// Clean workout structure without dummy progression data
+const getCleanWorkout = () => ({
   name: "Push Day - Upper Body",
   exercises: [
     {
       name: "Barbell Bench Press",
       sets: 4,
       reps: 8,
-      lastWeight: 185,
-      suggestedWeight: 190,
+      lastWeight: 0, // No previous data for new users
+      suggestedWeight: 0, // Will be calculated based on user history
       restTime: 180
     },
     {
       name: "Overhead Press",
       sets: 3,
       reps: 10,
-      lastWeight: 95,
-      suggestedWeight: 100,
+      lastWeight: 0, // No previous data for new users
+      suggestedWeight: 0, // Will be calculated based on user history
       restTime: 120
     },
     {
       name: "Incline Dumbbell Press",
       sets: 3,
       reps: 12,
-      lastWeight: 70,
-      suggestedWeight: 75,
+      lastWeight: 0, // No previous data for new users
+      suggestedWeight: 0, // Will be calculated based on user history
       restTime: 90
     },
     {
       name: "Lateral Raises",
       sets: 4,
       reps: 15,
-      lastWeight: 20,
-      suggestedWeight: 22.5,
+      lastWeight: 0, // No previous data for new users
+      suggestedWeight: 0, // Will be calculated based on user history
       restTime: 60
     }
   ]
-};
+});
 
 export const Workout = () => {
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ export const Workout = () => {
   const [showTimer, setShowTimer] = useState(false);
   const [completedSets, setCompletedSets] = useState<Array<{weight: number, reps: number}>>([]);
   const [showSubstitutionModal, setShowSubstitutionModal] = useState(false);
-  const [workout, setWorkout] = useState(mockWorkout);
+  const [workout, setWorkout] = useState(getCleanWorkout());
 
   const currentExercise = workout.exercises[currentExerciseIndex];
   const isLastExercise = currentExerciseIndex === workout.exercises.length - 1;
@@ -132,8 +133,28 @@ export const Workout = () => {
           </Button>
         </div>
 
-        {/* Progress */}
-        <Card className="p-4 mb-6">
+        {/* PRIORITY 1: Exercise Input - MOVED TO TOP */}
+        <div className="mb-6">
+          <ExerciseInput
+            exerciseName={currentExercise.name}
+            targetSets={currentExercise.sets}
+            targetReps={currentExercise.reps}
+            lastWeight={0} // Remove dummy data - will be 0 for first-time users
+            suggestedWeight={0} // Remove dummy data - will be 0 for first-time users
+            currentSet={currentSet}
+            onComplete={handleSetComplete}
+          />
+        </div>
+
+        {/* Timer */}
+        <ExerciseTimer
+          duration={currentExercise.restTime}
+          onComplete={handleTimerComplete}
+          isActive={showTimer}
+        />
+
+        {/* Progress - MOVED BELOW exercise input */}
+        <Card className="p-4 my-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Workout Progress</span>
             <span className="text-sm text-muted-foreground">
@@ -150,38 +171,24 @@ export const Workout = () => {
           </div>
         </Card>
 
-        {/* Exercise Input */}
-        <div className="mb-6">
-          <ExerciseInput
-            exerciseName={currentExercise.name}
-            targetSets={currentExercise.sets}
-            targetReps={currentExercise.reps}
-            lastWeight={currentExercise.lastWeight}
-            suggestedWeight={currentExercise.suggestedWeight}
-            currentSet={currentSet}
-            onComplete={handleSetComplete}
-          />
-        </div>
-
-        {/* Timer */}
-        <ExerciseTimer
-          duration={currentExercise.restTime}
-          onComplete={handleTimerComplete}
-          isActive={showTimer}
-        />
-
         {/* Exercise Queue */}
         <Card className="p-4 mt-6">
           <h3 className="font-semibold mb-3">Upcoming Exercises</h3>
           <div className="space-y-2">
-            {workout.exercises.slice(currentExerciseIndex + 1).map((exercise, index) => (
-              <div key={index} className="flex justify-between items-center text-sm">
-                <span>{exercise.name}</span>
-                <span className="text-muted-foreground">
-                  {exercise.sets} × {exercise.reps} @ {exercise.suggestedWeight} lbs
-                </span>
-              </div>
-            ))}
+            {workout.exercises.slice(currentExerciseIndex + 1).length === 0 ? (
+              <p className="text-sm text-muted-foreground italic">
+                This is your last exercise! 💪
+              </p>
+            ) : (
+              workout.exercises.slice(currentExerciseIndex + 1).map((exercise, index) => (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <span>{exercise.name}</span>
+                  <span className="text-muted-foreground">
+                    {exercise.sets} × {exercise.reps}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </Card>
       </div>
