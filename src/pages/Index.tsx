@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { ProgramOverview } from "@/components/ProgramOverview";
+import { ProgramRegenerationDialog } from "@/components/ProgramRegenerationDialog";
+import { RotationStatus } from "@/components/RotationStatus";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dumbbell, Brain, TrendingUp, Zap, Settings } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dumbbell, Brain, TrendingUp, Zap, Settings, Sparkles, RotateCcw, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserPrograms, getUserWorkouts, initializeDefaultProgram, type WorkoutProgram, type Workout } from "@/lib/firestore";
+import { getActiveProgram, getUserWorkouts, initializeDefaultProgram, type WorkoutProgram, type Workout } from "@/lib/firestore";
+import { checkRegenerationEligibility } from "@/lib/programRegeneration";
+import { toast } from "@/hooks/use-toast";
 import heroImage from "@/assets/gym-hero.jpg";
 
 const Index = () => {
@@ -16,6 +21,9 @@ const Index = () => {
   const [program, setProgram] = useState<WorkoutProgram | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRegenerationDialog, setShowRegenerationDialog] = useState(false);
+  const [canRegenerate, setCanRegenerate] = useState(false);
+  const [regenerationReason, setRegenerationReason] = useState<string>('');
 
   useEffect(() => {
     async function loadUserData() {
@@ -24,34 +32,53 @@ const Index = () => {
       try {
         setLoading(true);
         
-        // Get user's programs
-        const programs = await getUserPrograms(currentUser.uid);
+        // Get active program
+        const activeProgram = await getActiveProgram(currentUser.uid);
         
-        if (programs.length === 0) {
+        if (!activeProgram) {
           // Initialize default program for new users
           const { program: newProgram, workouts: newWorkouts } = await initializeDefaultProgram(currentUser.uid);
           setProgram(newProgram);
           setWorkouts(newWorkouts);
         } else {
-          // Use existing program
-          const currentProgram = programs[0]; // Get the most recent program
-          setProgram(currentProgram);
+          setProgram(activeProgram);
           
           // Get workouts for this program
-          const userWorkouts = await getUserWorkouts(currentUser.uid, currentProgram.id);
+          const userWorkouts = await getUserWorkouts(currentUser.uid, activeProgram.id);
           setWorkouts(userWorkouts);
         }
+        
+        // Check regeneration eligibility
+        if (activeProgram) {
+          const eligibility = await checkRegenerationEligibility(currentUser.uid);
+          setCanRegenerate(eligibility.canRegenerate);
+          setRegenerationReason(eligibility.reason || '');
+        }
+        
       } catch (error) {
         console.error('Error loading user data:', error);
+        toast({
+          title: 'Loading Error',
+          description: 'Failed to load your program data. Using fallback.',
+          variant: 'destructive',
+        });
+        
         // Fallback to mock data if there's an error
         setProgram({
           id: 'fallback',
           userId: currentUser.uid,
           name: "Strength & Hypertrophy Program",
           currentWeek: 1,
-          totalWeeks: 6,
+          totalWeeks: 8,
           workoutsCompleted: 0,
-          totalWorkouts: 18,
+          totalWorkouts: 24,
+          currentRotation: 1,
+          totalRotations: 4,
+          rotationCompletedWeeks: 0,
+          isActive: true,
+          regenerationCount: 0,
+          aiGenerated: false,
+          generationSource: 'default',
           createdAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as unknown as import('firebase/firestore').Timestamp,
           updatedAt: { seconds: Date.now() / 1000, nanoseconds: 0 } as unknown as import('firebase/firestore').Timestamp,
         });
@@ -68,6 +95,34 @@ const Index = () => {
       navigate(`/workout?id=${workoutId}`);
     } else {
       navigate("/workout");
+    }
+  };
+
+  const handleRegenerationSuccess = (result: any) => {
+    if (result.program) {
+      setProgram(result.program);
+    }
+    if (result.workouts) {
+      setWorkouts(result.workouts);
+    }
+    
+    // Refresh eligibility status
+    if (currentUser) {
+      checkRegenerationEligibility(currentUser.uid).then((eligibility) => {
+        setCanRegenerate(eligibility.canRegenerate);
+        setRegenerationReason(eligibility.reason || '');
+      });
+    }
+  };
+
+  const handleRotationChange = () => {
+    // Refresh program data when rotation changes
+    if (currentUser && program) {
+      getActiveProgram(currentUser.uid).then((updatedProgram) => {
+        if (updatedProgram) {
+          setProgram(updatedProgram);
+        }
+      });
     }
   };
 
@@ -129,18 +184,54 @@ const Index = () => {
                 workoutsCompleted={program.workoutsCompleted}
                 totalWorkouts={program.totalWorkouts}
                 nextWorkout={workouts.find(w => !w.isCompleted)?.title || "No upcoming workouts"}
+                program={program}
               />
             </div>
           ) : null}
+
+          {/* Rotation Status */}
+          {program && currentUser && (
+            <div className="mb-8">
+              <RotationStatus 
+                program={program} 
+                userId={currentUser.uid}
+                onRotationChange={handleRotationChange}
+              />
+            </div>
+          )}
 
           {/* Current Week Workouts */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold">This Week's Workouts</h2>
-              <Button variant="outline">
-                <Settings className="w-4 h-4 mr-2" />
-                Program Settings
-              </Button>
+              <div className="flex gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={canRegenerate ? "default" : "outline"}
+                        onClick={() => setShowRegenerationDialog(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        Generate New Program
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        {canRegenerate 
+                          ? `Ready for regeneration! ${regenerationReason}`
+                          : regenerationReason || 'Create a new AI-powered workout program'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <Button variant="outline">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Program Settings
+                </Button>
+              </div>
             </div>
             
             {loading ? (
@@ -151,7 +242,7 @@ const Index = () => {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : workouts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {workouts.map((workout, index) => (
                   <WorkoutCard
@@ -166,6 +257,28 @@ const Index = () => {
                   />
                 ))}
               </div>
+            ) : (
+              <Card className="p-8 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                    <Plus className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">No Workouts Available</h3>
+                    <p className="text-muted-foreground max-w-md">
+                      It looks like you don't have any workouts in your current program. 
+                      Generate a new AI-powered program to get started!
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => setShowRegenerationDialog(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Generate AI Program
+                  </Button>
+                </div>
+              </Card>
             )}
           </div>
 
@@ -199,6 +312,17 @@ const Index = () => {
           </Card>
         </div>
       </div>
+      
+      {/* Program Regeneration Dialog */}
+      {currentUser && (
+        <ProgramRegenerationDialog
+          open={showRegenerationDialog}
+          onOpenChange={setShowRegenerationDialog}
+          userId={currentUser.uid}
+          currentProgram={program}
+          onSuccess={handleRegenerationSuccess}
+        />
+      )}
     </div>
   );
 };

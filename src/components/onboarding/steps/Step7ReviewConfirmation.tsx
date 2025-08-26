@@ -7,9 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
-import { CheckCircle, User, Target, Dumbbell, Clock, Heart, Zap } from 'lucide-react';
+import { CheckCircle, User, Target, Dumbbell, Clock, Heart, Zap, Loader2, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react';
 import { generateAIPromptData } from '@/lib/userProfiles';
+import { generateWorkoutPlan, AIWorkoutGenerationError } from '@/lib/aiWorkoutGeneration';
+import { initializeDefaultProgram } from '@/lib/firestore';
 
 export function Step7ReviewConfirmation() {
   const { profile, completeOnboardingFlow } = useOnboarding();
@@ -17,10 +21,28 @@ export function Step7ReviewConfirmation() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<
+    'idle' | 'generating' | 'success' | 'error' | 'fallback'
+  >('idle');
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationStage, setGenerationStage] = useState('');
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [canRetry, setCanRetry] = useState(false);
+  const [programPreview, setProgramPreview] = useState<{
+    name: string;
+    workouts: number;
+    weeks: number;
+  } | null>(null);
 
   if (!profile) {
     return <div>Loading...</div>;
   }
+
+  // Simulate progress updates during AI generation
+  const updateProgress = (stage: string, progress: number) => {
+    setGenerationStage(stage);
+    setGenerationProgress(progress);
+  };
 
   const handleComplete = async () => {
     if (!agreed) {
@@ -34,29 +56,132 @@ export function Step7ReviewConfirmation() {
 
     try {
       setLoading(true);
+      setGenerationStatus('generating');
+      setGenerationError(null);
+      setCanRetry(false);
       
-      // Complete the onboarding
+      // Complete the onboarding first
+      updateProgress('Completing your profile...', 10);
       await completeOnboardingFlow({
         onboardingCompleted: true,
         completionStep: 7,
       });
 
+      if (!profile || !currentUser) {
+        throw new Error('Profile or user data missing');
+      }
+
+      // Generate AI workout program
+      updateProgress('Analyzing your fitness profile...', 25);
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Brief pause for UX
+      
+      updateProgress('Generating personalized exercises...', 50);
+      const aiResult = await generateWorkoutPlan(profile);
+      
+      updateProgress('Optimizing your workout schedule...', 75);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      updateProgress('Finalizing your program...', 90);
+      
+      // Set program preview
+      setProgramPreview({
+        name: aiResult.program.name,
+        workouts: aiResult.workouts.length,
+        weeks: aiResult.program.totalWeeks,
+      });
+      
+      updateProgress('Complete! 🎉', 100);
+      setGenerationStatus('success');
+      
+      // Brief delay to show success state
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       toast({
         title: "Welcome to AI Muscle Coach! 🎉",
-        description: "Your personalized fitness journey starts now!",
+        description: `Your personalized "${aiResult.program.name}" program is ready!`,
       });
 
       // Navigate to the main dashboard
       navigate('/');
       
     } catch (error) {
-      toast({
-        title: "Error completing onboarding",
-        description: "Please try again.",
-        variant: "destructive",
-      });
+      console.error('Onboarding completion error:', error);
+      setGenerationStatus('error');
+      
+      let errorMessage = 'Failed to generate your workout program.';
+      const shouldShowRetry = true;
+      
+      if (error instanceof AIWorkoutGenerationError) {
+        switch (error.code) {
+          case 'API_ERROR':
+            errorMessage = 'Unable to connect to AI service. Using fallback program.';
+            break;
+          case 'RATE_LIMIT':
+            errorMessage = 'AI service is busy. Please try again in a few minutes.';
+            break;
+          case 'NETWORK_ERROR':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          default:
+            errorMessage = error.message;
+        }
+      }
+      
+      setGenerationError(errorMessage);
+      setCanRetry(shouldShowRetry);
+      
+      // For certain errors, try fallback immediately
+      if (error instanceof AIWorkoutGenerationError && 
+          (error.code === 'PARSE_ERROR' || error.code === 'VALIDATION_ERROR')) {
+        await handleFallback();
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRetry = async () => {
+    setGenerationStatus('idle');
+    setGenerationError(null);
+    setGenerationProgress(0);
+    setGenerationStage('');
+    await handleComplete();
+  };
+
+  const handleFallback = async () => {
+    try {
+      if (!currentUser) return;
+      
+      setGenerationStatus('generating');
+      updateProgress('Creating default program...', 50);
+      
+      const defaultProgram = await initializeDefaultProgram(currentUser.uid);
+      
+      setProgramPreview({
+        name: defaultProgram.program.name,
+        workouts: defaultProgram.workouts.length,
+        weeks: defaultProgram.program.totalWeeks,
+      });
+      
+      updateProgress('Default program ready!', 100);
+      setGenerationStatus('fallback');
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Program Created! 💪",
+        description: "We've created a solid starter program for you. You can always generate a new one later!",
+      });
+      
+      navigate('/');
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Unable to create workout program. Please try again.",
+        variant: "destructive",
+      });
+      setGenerationStatus('error');
     }
   };
 
@@ -71,16 +196,163 @@ export function Step7ReviewConfirmation() {
     (profile.preferences?.favoriteExercises?.length || 0) +
     (profile.preferences?.dislikedExercises?.length || 0);
 
+  // Dynamic button text based on generation status
+  const getButtonText = () => {
+    if (generationStatus === 'generating') {
+      return generationStage || 'Generating Your Program...';
+    }
+    if (generationStatus === 'success') {
+      return 'Program Created! 🎉';
+    }
+    if (generationStatus === 'error') {
+      return 'Try Again';
+    }
+    if (generationStatus === 'fallback') {
+      return 'Program Ready! 💪';
+    }
+    return 'Create My AI Program';
+  };
+
+  const isGenerating = generationStatus === 'generating';
+  const showRetryOptions = generationStatus === 'error' && canRetry;
+  const isComplete = generationStatus === 'success' || generationStatus === 'fallback';
+
   return (
     <OnboardingLayout
-      title="Review Your Profile"
-      description="Let's make sure everything looks good before we create your personalized program"
-      onNext={handleComplete}
-      nextButtonText={loading ? "Creating Your Program..." : "Complete Setup"}
+      title={isGenerating ? "Creating Your Program" : "Review Your Profile"}
+      description={
+        isGenerating 
+          ? "Our AI is analyzing your profile to create the perfect workout program for you..."
+          : "Let's make sure everything looks good before we create your personalized program"
+      }
+      onNext={showRetryOptions ? handleRetry : handleComplete}
+      nextButtonText={getButtonText()}
       isLoading={loading}
-      showPrevButton={false}
+      showPrevButton={!isGenerating && !isComplete}
     >
-      <div className="space-y-6">
+      {/* AI Generation Progress */}
+      {isGenerating && (
+        <div className="space-y-6 mb-8">
+          <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                AI Workout Generation in Progress
+                <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm font-medium">{generationStage}</span>
+                </div>
+                <Progress value={generationProgress} className="w-full" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  This usually takes 30-60 seconds
+                </p>
+              </div>
+              
+              {/* What's happening */}
+              <div className="bg-muted/50 rounded-lg p-3">
+                <h4 className="text-sm font-medium mb-2">What's happening:</h4>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      generationProgress >= 25 ? 'bg-green-500' : 'bg-muted-foreground/30'
+                    }`} />
+                    <span>Analyzing your fitness profile and goals</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      generationProgress >= 50 ? 'bg-green-500' : 'bg-muted-foreground/30'
+                    }`} />
+                    <span>Selecting personalized exercises and progressions</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      generationProgress >= 75 ? 'bg-green-500' : 'bg-muted-foreground/30'
+                    }`} />
+                    <span>Optimizing workout schedule and timing</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      generationProgress >= 100 ? 'bg-green-500' : 'bg-muted-foreground/30'
+                    }`} />
+                    <span>Finalizing your 6-week program</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Error State */}
+      {generationStatus === 'error' && (
+        <div className="space-y-4 mb-8">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {generationError}
+            </AlertDescription>
+          </Alert>
+          
+          {canRetry && (
+            <div className="flex gap-2 justify-center">
+              <Button 
+                variant="outline" 
+                onClick={handleRetry}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Try Again with AI
+              </Button>
+              <Button 
+                variant="secondary" 
+                onClick={handleFallback}
+                className="flex items-center gap-2"
+              >
+                <Dumbbell className="w-4 h-4" />
+                Use Default Program
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Success State */}
+      {(generationStatus === 'success' || generationStatus === 'fallback') && programPreview && (
+        <div className="space-y-4 mb-8">
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 dark:from-green-950/20 dark:to-emerald-950/20 dark:border-green-800">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                <CheckCircle className="w-5 h-5" />
+                {generationStatus === 'success' ? 'AI Program Generated!' : 'Program Created!'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="font-medium">{programPreview.name}</p>
+                <div className="flex gap-4 text-sm text-muted-foreground">
+                  <span>• {programPreview.workouts} workouts</span>
+                  <span>• {programPreview.weeks} weeks</span>
+                  <span>• 2-week rotation system</span>
+                </div>
+                {generationStatus === 'fallback' && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This is a proven starter program. You can generate a new AI program anytime from your dashboard!
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Only show profile review when not generating or in error state */}
+      {(generationStatus === 'idle' || showRetryOptions) && (
+        <div className="space-y-6">
         {/* Profile Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Personal Info */}
@@ -352,7 +624,8 @@ export function Step7ReviewConfirmation() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
     </OnboardingLayout>
   );
 }

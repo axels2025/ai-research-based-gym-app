@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Target, TrendingUp, Clock } from "lucide-react";
+import { Calendar, Target, TrendingUp, Clock, Brain, Sparkles, RotateCcw } from "lucide-react";
+import { type WorkoutProgram } from "@/lib/firestore";
 
 interface ProgramOverviewProps {
   programName: string;
@@ -10,6 +11,7 @@ interface ProgramOverviewProps {
   workoutsCompleted: number;
   totalWorkouts: number;
   nextWorkout: string;
+  program?: WorkoutProgram; // Optional for enhanced features
 }
 
 export const ProgramOverview = ({
@@ -18,7 +20,8 @@ export const ProgramOverview = ({
   totalWeeks,
   workoutsCompleted,
   totalWorkouts,
-  nextWorkout
+  nextWorkout,
+  program
 }: ProgramOverviewProps) => {
   const progressPercentage = (workoutsCompleted / totalWorkouts) * 100;
 
@@ -27,11 +30,36 @@ export const ProgramOverview = ({
       <div className="flex items-start justify-between mb-4">
         <div>
           <h2 className="text-2xl font-bold mb-1">{programName}</h2>
-          <p className="text-muted-foreground">Research-based progression program</p>
+          <div className="flex items-center gap-2">
+            <p className="text-muted-foreground">Research-based progression program</p>
+            {program && (
+              <div className="flex items-center gap-1">
+                {program.aiGenerated && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <Brain className="w-3 h-3" />
+                    AI Generated
+                  </Badge>
+                )}
+                {program.currentRotation && (
+                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                    <RotateCcw className="w-3 h-3" />
+                    Rotation {program.currentRotation}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-        <Badge className="bg-gradient-to-r from-accent to-accent/80">
-          Week {currentWeek}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge className="bg-gradient-to-r from-accent to-accent/80">
+            Week {currentWeek}
+          </Badge>
+          {program?.currentRotation && (
+            <Badge variant="outline">
+              R{program.currentRotation}/{program.totalRotations}
+            </Badge>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4 mb-6">
@@ -60,6 +88,12 @@ export const ProgramOverview = ({
             <span className="text-sm">Completion</span>
           </div>
           <p className="text-2xl font-bold">{Math.round(progressPercentage)}%</p>
+          {program?.regenerationCount && program.regenerationCount > 0 && (
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              Gen #{program.regenerationCount + 1}
+            </div>
+          )}
         </div>
       </div>
 
