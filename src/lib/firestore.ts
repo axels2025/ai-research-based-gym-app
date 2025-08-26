@@ -81,6 +81,21 @@ export interface Exercise {
     suggestion: number;
     reason: string;
   };
+  // New progressive overload features
+  exerciseType?: 'compound' | 'isolation';
+  muscleActivation?: string[];
+  formCues?: string[];
+  equipmentRequired?: string[];
+  substitutions?: {
+    exerciseName: string;
+    reason: 'equipment' | 'injury' | 'preference';
+    difficulty: 'easier' | 'similar' | 'harder';
+  }[];
+  // RPE and performance tracking
+  rpe?: number; // Rate of Perceived Exertion (1-10)
+  formQuality?: 'excellent' | 'good' | 'acceptable' | 'poor';
+  tempo?: string; // e.g., "3-1-2-1" (eccentric-pause-concentric-pause)
+  rangeOfMotion?: 'full' | 'partial' | 'extended';
 }
 
 export interface WorkoutSession {
@@ -92,6 +107,102 @@ export interface WorkoutSession {
   exercises: Exercise[];
   duration?: number;
   notes?: string;
+  // Enhanced session tracking
+  energyLevelPre?: number; // 1-10 scale
+  energyLevelPost?: number; // 1-10 scale
+  sleepQuality?: number; // 1-10 scale
+  musclesoreness?: number; // 1-10 scale
+  sessionRPE?: number; // Overall session RPE
+  totalVolume?: number; // Total weight × reps × sets
+  averageRestTime?: number;
+  exercisesCompleted: number;
+  exercisesSkipped?: string[]; // Exercise IDs that were skipped
+  substitutionsMade?: {
+    originalExercise: string;
+    substituteExercise: string;
+    reason: string;
+  }[];
+}
+
+// New interfaces for progressive overload system
+export interface PerformanceRecord {
+  id: string;
+  exerciseId: string;
+  userId: string;
+  sessionDate: Timestamp;
+  weight?: number;
+  reps: number;
+  sets: number;
+  rpe?: number;
+  formQuality: 'excellent' | 'good' | 'acceptable' | 'poor';
+  restTime: number;
+  notes?: string;
+  wasProgression: boolean;
+  progressionType?: 'weight' | 'reps' | 'sets';
+  createdAt: Timestamp;
+}
+
+export interface ExerciseProgression {
+  id: string;
+  userId: string;
+  exerciseId: string;
+  exerciseName: string;
+  currentWeight?: number;
+  currentReps: string;
+  currentSets: number;
+  lastProgressionDate?: Timestamp;
+  weeksSinceProgression: number;
+  totalSessions: number;
+  successfulSessions: number;
+  averageRPE?: number;
+  progressionHistory: {
+    date: Timestamp;
+    type: 'weight' | 'reps' | 'sets';
+    fromValue: number | string;
+    toValue: number | string;
+    successful: boolean;
+    reason: string;
+  }[];
+  nextSuggestion?: {
+    type: 'weight' | 'reps' | 'sets' | 'rest';
+    currentValue: number | string;
+    suggestedValue: number | string;
+    reason: string;
+    confidence: 'high' | 'medium' | 'low';
+    implementationNotes: string;
+  };
+  updatedAt: Timestamp;
+}
+
+export interface ProgressAnalytics {
+  id: string;
+  userId: string;
+  weekEnding: Timestamp; // Week this analytics period covers
+  strengthMetrics: {
+    exerciseName: string;
+    oneRepMaxEstimate: number;
+    strengthScore: number; // 0-100 normalized score
+    volumeLifted: number;
+    sessionsCompleted: number;
+  }[];
+  volumeMetrics: {
+    totalVolume: number;
+    muscleGroupVolumes: Record<string, number>;
+    weeklyVolumeChange: number; // percentage
+  };
+  consistencyMetrics: {
+    scheduledWorkouts: number;
+    completedWorkouts: number;
+    consistencyScore: number; // 0-1
+    currentStreak: number;
+    longestStreak: number;
+  };
+  bodyComposition?: {
+    weight?: number;
+    bodyFat?: number;
+    measurements?: Record<string, number>;
+  };
+  createdAt: Timestamp;
 }
 
 // Workout Programs
@@ -458,4 +569,196 @@ export async function getRotationStatus(programId: string): Promise<{
     daysUntilNextRotation,
     rotationProgress,
   };
+}
+
+// Progressive Overload Functions
+export async function createPerformanceRecord(userId: string, recordData: Omit<PerformanceRecord, 'id' | 'userId' | 'createdAt'>) {
+  const recordRef = doc(collection(db, 'performanceRecords'));
+  const record: PerformanceRecord = {
+    id: recordRef.id,
+    userId,
+    ...recordData,
+    createdAt: Timestamp.now(),
+  };
+  
+  await setDoc(recordRef, record);
+  return record;
+}
+
+export async function getUserPerformanceRecords(userId: string, exerciseId?: string): Promise<PerformanceRecord[]> {
+  let q = query(
+    collection(db, 'performanceRecords'),
+    where('userId', '==', userId),
+    orderBy('sessionDate', 'desc')
+  );
+  
+  if (exerciseId) {
+    q = query(
+      collection(db, 'performanceRecords'),
+      where('userId', '==', userId),
+      where('exerciseId', '==', exerciseId),
+      orderBy('sessionDate', 'desc')
+    );
+  }
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => doc.data() as PerformanceRecord);
+}
+
+export async function updateExerciseProgression(userId: string, progressionData: Omit<ExerciseProgression, 'id' | 'userId' | 'updatedAt'>) {
+  const progressionRef = doc(collection(db, 'exerciseProgressions'));
+  const progression: ExerciseProgression = {
+    id: progressionRef.id,
+    userId,
+    ...progressionData,
+    updatedAt: Timestamp.now(),
+  };
+  
+  await setDoc(progressionRef, progression);
+  return progression;
+}
+
+export async function getUserProgressions(userId: string): Promise<ExerciseProgression[]> {
+  const q = query(
+    collection(db, 'exerciseProgressions'),
+    where('userId', '==', userId),
+    orderBy('updatedAt', 'desc')
+  );
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => doc.data() as ExerciseProgression);
+}
+
+export async function getExerciseProgression(userId: string, exerciseId: string): Promise<ExerciseProgression | null> {
+  const q = query(
+    collection(db, 'exerciseProgressions'),
+    where('userId', '==', userId),
+    where('exerciseId', '==', exerciseId)
+  );
+  
+  const querySnapshot = await getDocs(q);
+  const docs = querySnapshot.docs.map(doc => doc.data() as ExerciseProgression);
+  return docs.length > 0 ? docs[0] : null;
+}
+
+// Analytics Functions
+export async function createWeeklyAnalytics(userId: string, analyticsData: Omit<ProgressAnalytics, 'id' | 'userId' | 'createdAt'>) {
+  const analyticsRef = doc(collection(db, 'progressAnalytics'));
+  const analytics: ProgressAnalytics = {
+    id: analyticsRef.id,
+    userId,
+    ...analyticsData,
+    createdAt: Timestamp.now(),
+  };
+  
+  await setDoc(analyticsRef, analytics);
+  return analytics;
+}
+
+export async function getUserAnalytics(userId: string, weeks?: number): Promise<ProgressAnalytics[]> {
+  let q = query(
+    collection(db, 'progressAnalytics'),
+    where('userId', '==', userId),
+    orderBy('weekEnding', 'desc')
+  );
+  
+  if (weeks) {
+    // Limit to specific number of weeks
+    const weeksAgo = new Date();
+    weeksAgo.setDate(weeksAgo.getDate() - (weeks * 7));
+    
+    q = query(
+      collection(db, 'progressAnalytics'),
+      where('userId', '==', userId),
+      where('weekEnding', '>=', Timestamp.fromDate(weeksAgo)),
+      orderBy('weekEnding', 'desc')
+    );
+  }
+  
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => doc.data() as ProgressAnalytics);
+}
+
+// Exercise Substitution Functions
+export async function recordExerciseSubstitution(
+  userId: string, 
+  workoutSessionId: string, 
+  originalExercise: string, 
+  substituteExercise: string, 
+  reason: string
+) {
+  const sessionRef = doc(db, 'workoutSessions', workoutSessionId);
+  const sessionDoc = await getDoc(sessionRef);
+  
+  if (sessionDoc.exists()) {
+    const sessionData = sessionDoc.data() as WorkoutSession;
+    const existingSubstitutions = sessionData.substitutionsMade || [];
+    
+    await updateDoc(sessionRef, {
+      substitutionsMade: [
+        ...existingSubstitutions,
+        {
+          originalExercise,
+          substituteExercise,
+          reason
+        }
+      ]
+    });
+  }
+}
+
+// Enhanced Workout Session functions
+export async function recordWorkoutMetrics(
+  sessionId: string,
+  metrics: {
+    energyLevelPre?: number;
+    energyLevelPost?: number;
+    sleepQuality?: number;
+    musclesoreness?: number;
+    sessionRPE?: number;
+  }
+) {
+  const sessionRef = doc(db, 'workoutSessions', sessionId);
+  await updateDoc(sessionRef, metrics);
+}
+
+export async function calculateSessionVolume(sessionId: string): Promise<number> {
+  const sessionRef = doc(db, 'workoutSessions', sessionId);
+  const sessionDoc = await getDoc(sessionRef);
+  
+  if (!sessionDoc.exists()) return 0;
+  
+  const session = sessionDoc.data() as WorkoutSession;
+  const totalVolume = session.exercises.reduce((volume, exercise) => {
+    if (exercise.weight && exercise.sets) {
+      const repsCompleted = parseInt(exercise.reps.split('-')[0]) || 0;
+      return volume + (exercise.weight * repsCompleted * exercise.sets);
+    }
+    return volume;
+  }, 0);
+  
+  await updateDoc(sessionRef, { totalVolume });
+  return totalVolume;
+}
+
+// Workout completion with enhanced tracking
+export async function completeWorkoutWithMetrics(
+  workoutId: string, 
+  sessionMetrics: {
+    duration: number;
+    exercisesCompleted: number;
+    totalVolume: number;
+    sessionRPE?: number;
+    energyLevelPost?: number;
+    notes?: string;
+  }
+) {
+  await updateWorkout(workoutId, {
+    isCompleted: true,
+    completedAt: Timestamp.now(),
+  });
+  
+  // Record performance for each exercise
+  // This would typically be called from the workout completion flow
+  // with individual exercise performance data
 }
