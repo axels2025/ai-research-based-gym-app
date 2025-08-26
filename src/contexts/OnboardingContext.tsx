@@ -265,11 +265,8 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
       case 5: // Health and limitations - Always valid (optional step)
         isValid = true;
         break;
-      case 6: // Exercise preferences - Use actual validation for complex step
-        isValid = !!(
-          currentProfile.preferences?.preferredWorkoutSplit &&
-          currentProfile.preferences?.repRangePreference
-        );
+      case 6: // Exercise preferences - Let form handle its own validation
+        isValid = true;
         break;
       case 7: // Review and confirmation - Final validation
         isValid = !!(
