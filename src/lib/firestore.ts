@@ -96,6 +96,44 @@ export interface Exercise {
   formQuality?: 'excellent' | 'good' | 'acceptable' | 'poor';
   tempo?: string; // e.g., "3-1-2-1" (eccentric-pause-concentric-pause)
   rangeOfMotion?: 'full' | 'partial' | 'extended';
+  
+  // Research-based warm-up and training protocol
+  workingWeight?: number; // User's comfortable working weight
+  equipmentType?: 'barbell' | 'dumbbell' | 'machine' | 'bodyweight';
+  trainingGoal?: 'strength' | 'hypertrophy' | 'endurance';
+  warmupProtocol?: {
+    sets: Array<{
+      id: string;
+      weight: number;
+      reps: string;
+      percentage: number;
+      restTime: number;
+      description: string;
+      stage: 'movement-prep' | 'activation' | 'potentiation';
+      isCompleted?: boolean;
+      actualReps?: number;
+    }>;
+  };
+  workingSetProtocol?: {
+    sets: Array<{
+      id: string;
+      weight: number;
+      reps: string | number;
+      restTime: number;
+      description: string;
+      targetRPE?: number;
+      isCompleted?: boolean;
+      actualReps?: number;
+      actualRPE?: number;
+    }>;
+  };
+  calculationMethod?: 'research-based' | 'user-input' | 'ai-generated';
+  lastComfortableWeight?: {
+    weight: number;
+    reps: number;
+    date: Timestamp;
+    rpe?: number;
+  };
 }
 
 export interface WorkoutSession {

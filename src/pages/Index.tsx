@@ -2,16 +2,13 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { WorkoutCard } from "@/components/WorkoutCard";
 import { ProgramOverview } from "@/components/ProgramOverview";
-import { ProgramRegenerationDialog } from "@/components/ProgramRegenerationDialog";
 import { RotationStatus } from "@/components/RotationStatus";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dumbbell, Brain, TrendingUp, Zap, Settings, Sparkles, RotateCcw, Plus, BarChart3 } from "lucide-react";
+import { Dumbbell, Brain, TrendingUp, Zap, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getActiveProgram, getUserWorkouts, initializeDefaultProgram, type WorkoutProgram, type Workout } from "@/lib/firestore";
-import { checkRegenerationEligibility } from "@/lib/programRegeneration";
 import { toast } from "@/hooks/use-toast";
 import heroImage from "@/assets/gym-hero.jpg";
 
@@ -21,9 +18,6 @@ const Index = () => {
   const [program, setProgram] = useState<WorkoutProgram | null>(null);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showRegenerationDialog, setShowRegenerationDialog] = useState(false);
-  const [canRegenerate, setCanRegenerate] = useState(false);
-  const [regenerationReason, setRegenerationReason] = useState<string>('');
 
   useEffect(() => {
     async function loadUserData() {
@@ -48,12 +42,6 @@ const Index = () => {
           setWorkouts(userWorkouts);
         }
         
-        // Check regeneration eligibility
-        if (activeProgram) {
-          const eligibility = await checkRegenerationEligibility(currentUser.uid);
-          setCanRegenerate(eligibility.canRegenerate);
-          setRegenerationReason(eligibility.reason || '');
-        }
         
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -95,23 +83,6 @@ const Index = () => {
       navigate(`/pre-workout?id=${workoutId}`);
     } else {
       navigate("/workout");
-    }
-  };
-
-  const handleRegenerationSuccess = (result: any) => {
-    if (result.program) {
-      setProgram(result.program);
-    }
-    if (result.workouts) {
-      setWorkouts(result.workouts);
-    }
-    
-    // Refresh eligibility status
-    if (currentUser) {
-      checkRegenerationEligibility(currentUser.uid).then((eligibility) => {
-        setCanRegenerate(eligibility.canRegenerate);
-        setRegenerationReason(eligibility.reason || '');
-      });
     }
   };
 
@@ -170,76 +141,10 @@ const Index = () => {
       {/* Dashboard Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-6xl mx-auto">
-          {/* Program Overview */}
-          {loading ? (
-            <div className="mb-12 animate-pulse">
-              <div className="h-32 bg-muted rounded-lg"></div>
-            </div>
-          ) : program ? (
-            <div className="mb-12">
-              <ProgramOverview
-                programName={program.name}
-                currentWeek={program.currentWeek}
-                totalWeeks={program.totalWeeks}
-                workoutsCompleted={program.workoutsCompleted}
-                totalWorkouts={program.totalWorkouts}
-                nextWorkout={workouts.find(w => !w.isCompleted)?.title || "No upcoming workouts"}
-                program={program}
-              />
-            </div>
-          ) : null}
-
-          {/* Rotation Status */}
-          {program && currentUser && (
-            <div className="mb-8">
-              <RotationStatus 
-                program={program} 
-                userId={currentUser.uid}
-                onRotationChange={handleRotationChange}
-              />
-            </div>
-          )}
-
-          {/* Current Week Workouts */}
+          {/* Current Week Workouts - Moved to top */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold">This Week's Workouts</h2>
-              <div className="flex gap-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant={canRegenerate ? "default" : "outline"}
-                        onClick={() => setShowRegenerationDialog(true)}
-                        className="flex items-center gap-2"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        Generate New Program
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        {canRegenerate 
-                          ? `Ready for regeneration! ${regenerationReason}`
-                          : regenerationReason || 'Create a new AI-powered workout program'}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate('/program-overview')}
-                >
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Program Overview
-                </Button>
-                
-                <Button variant="outline">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Program Settings
-                </Button>
-              </div>
             </div>
             
             {loading ? (
@@ -279,16 +184,46 @@ const Index = () => {
                     </p>
                   </div>
                   <Button 
-                    onClick={() => setShowRegenerationDialog(true)}
+                    onClick={() => navigate('/workout')}
                     className="flex items-center gap-2"
                   >
-                    <Sparkles className="w-4 h-4" />
-                    Generate AI Program
+                    <Plus className="w-4 h-4" />
+                    Start Quick Workout
                   </Button>
                 </div>
               </Card>
             )}
           </div>
+
+          {/* Program Overview */}
+          {loading ? (
+            <div className="mb-12 animate-pulse">
+              <div className="h-32 bg-muted rounded-lg"></div>
+            </div>
+          ) : program ? (
+            <div className="mb-12">
+              <ProgramOverview
+                programName={program.name}
+                currentWeek={program.currentWeek}
+                totalWeeks={program.totalWeeks}
+                workoutsCompleted={program.workoutsCompleted}
+                totalWorkouts={program.totalWorkouts}
+                nextWorkout={workouts.find(w => !w.isCompleted)?.title || "No upcoming workouts"}
+                program={program}
+              />
+            </div>
+          ) : null}
+
+          {/* Rotation Status */}
+          {program && currentUser && (
+            <div className="mb-8">
+              <RotationStatus 
+                program={program} 
+                userId={currentUser.uid}
+                onRotationChange={handleRotationChange}
+              />
+            </div>
+          )}
 
           {/* AI Insights */}
           <Card className="p-8 bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
@@ -320,17 +255,6 @@ const Index = () => {
           </Card>
         </div>
       </div>
-      
-      {/* Program Regeneration Dialog */}
-      {currentUser && (
-        <ProgramRegenerationDialog
-          open={showRegenerationDialog}
-          onOpenChange={setShowRegenerationDialog}
-          userId={currentUser.uid}
-          currentProgram={program}
-          onSuccess={handleRegenerationSuccess}
-        />
-      )}
     </div>
   );
 };

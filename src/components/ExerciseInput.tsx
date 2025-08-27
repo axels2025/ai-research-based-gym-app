@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, CheckCircle, Target, TrendingUp } from "lucide-react";
+import { Plus, Minus, CheckCircle, Target, TrendingUp, Scale } from "lucide-react";
+
+type WeightUnit = 'kg' | 'lbs';
 
 interface ExerciseInputProps {
   exerciseName: string;
@@ -16,6 +18,31 @@ interface ExerciseInputProps {
   currentSet: number;
 }
 
+// Weight conversion constants
+const KG_TO_LBS = 2.20462;
+const LBS_TO_KG = 1 / KG_TO_LBS;
+
+// Weight conversion functions
+const convertWeight = (weight: number, fromUnit: WeightUnit, toUnit: WeightUnit): number => {
+  if (fromUnit === toUnit) return weight;
+  
+  if (fromUnit === 'kg' && toUnit === 'lbs') {
+    return Math.round((weight * KG_TO_LBS) * 4) / 4; // Round to nearest 0.25 lbs
+  } else {
+    return Math.round((weight * LBS_TO_KG) * 4) / 4; // Round to nearest 0.25 kg
+  }
+};
+
+// Get weight increment based on unit
+const getWeightIncrement = (unit: WeightUnit): number => {
+  return unit === 'kg' ? 2.5 : 5;
+};
+
+// Format weight display
+const formatWeight = (weight: number): string => {
+  return weight % 1 === 0 ? weight.toString() : weight.toFixed(2);
+};
+
 export const ExerciseInput = ({ 
   exerciseName, 
   targetSets, 
@@ -25,12 +52,42 @@ export const ExerciseInput = ({
   onComplete,
   currentSet
 }: ExerciseInputProps) => {
-  // Use 0 as default if no suggested weight, user will need to input their starting weight
+  // Get persisted weight unit for this exercise (default to lbs)
+  const getStoredUnit = (): WeightUnit => {
+    const stored = localStorage.getItem(`weight-unit-${exerciseName}`);
+    return (stored === 'kg' || stored === 'lbs') ? stored : 'lbs';
+  };
+
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>(getStoredUnit());
   const [weight, setWeight] = useState(suggestedWeight > 0 ? suggestedWeight : 0);
   const [reps, setReps] = useState(targetReps);
 
+  // Convert weight values to display unit
+  const displayWeight = convertWeight(weight, 'lbs', weightUnit); // Internal storage is always lbs
+  const displayLastWeight = lastWeight > 0 ? convertWeight(lastWeight, 'lbs', weightUnit) : 0;
+  const displaySuggestedWeight = suggestedWeight > 0 ? convertWeight(suggestedWeight, 'lbs', weightUnit) : 0;
+  const displayWeightIncrease = displaySuggestedWeight - displayLastWeight;
+
+  // Update weight unit and save to localStorage
+  const toggleWeightUnit = () => {
+    const newUnit: WeightUnit = weightUnit === 'kg' ? 'lbs' : 'kg';
+    setWeightUnit(newUnit);
+    localStorage.setItem(`weight-unit-${exerciseName}`, newUnit);
+  };
+
+  // Handle weight changes with proper unit increment
   const handleWeightChange = (delta: number) => {
-    setWeight(Math.max(0, weight + delta));
+    const increment = getWeightIncrement(weightUnit);
+    const currentDisplayWeight = convertWeight(weight, 'lbs', weightUnit);
+    const newDisplayWeight = Math.max(0, currentDisplayWeight + (delta > 0 ? increment : -increment));
+    const newInternalWeight = convertWeight(newDisplayWeight, weightUnit, 'lbs');
+    setWeight(newInternalWeight);
+  };
+
+  const handleWeightInputChange = (value: number) => {
+    // Convert from display unit to internal storage (lbs)
+    const internalWeight = convertWeight(value, weightUnit, 'lbs');
+    setWeight(internalWeight);
   };
 
   const handleRepsChange = (delta: number) => {
@@ -38,10 +95,8 @@ export const ExerciseInput = ({
   };
 
   const handleComplete = () => {
-    onComplete(weight, reps);
+    onComplete(weight, reps); // Always store weight in lbs internally
   };
-
-  const weightIncrease = suggestedWeight - lastWeight;
 
   return (
     <Card className="p-6 bg-gradient-to-br from-card to-card/80 border-2 border-primary/20">
@@ -53,16 +108,16 @@ export const ExerciseInput = ({
           </Badge>
         </div>
         
-        {lastWeight > 0 ? (
+        {displayLastWeight > 0 ? (
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
             <div className="flex items-center gap-1">
               <Target className="w-4 h-4" />
-              <span>Last: {lastWeight} lbs</span>
+              <span>Last: {formatWeight(displayLastWeight)} {weightUnit}</span>
             </div>
-            {weightIncrease > 0 && (
+            {displayWeightIncrease > 0 && (
               <div className="flex items-center gap-1 text-success">
                 <TrendingUp className="w-4 h-4" />
-                <span>+{weightIncrease} lbs progression</span>
+                <span>+{formatWeight(displayWeightIncrease)} {weightUnit} progression</span>
               </div>
             )}
           </div>
@@ -78,26 +133,37 @@ export const ExerciseInput = ({
       <div className="grid grid-cols-2 gap-6 mb-6">
         {/* Weight Input */}
         <div className="space-y-3">
-          <Label className="text-lg font-semibold">Weight (lbs)</Label>
+          <div className="flex items-center gap-2">
+            <Label className="text-lg font-semibold">Weight ({weightUnit})</Label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleWeightUnit}
+              className="h-6 px-2 text-xs"
+            >
+              <Scale className="w-3 h-3 mr-1" />
+              {weightUnit === 'kg' ? 'LBS' : 'KG'}
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => handleWeightChange(-2.5)}
+              onClick={() => handleWeightChange(-1)}
               className="h-12 w-12"
             >
               <Minus className="w-4 h-4" />
             </Button>
             <Input 
               type="number" 
-              value={weight} 
-              onChange={(e) => setWeight(Number(e.target.value))}
+              value={formatWeight(displayWeight)} 
+              onChange={(e) => handleWeightInputChange(Number(e.target.value))}
               className="text-center text-xl font-bold h-12"
             />
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => handleWeightChange(2.5)}
+              onClick={() => handleWeightChange(1)}
               className="h-12 w-12"
             >
               <Plus className="w-4 h-4" />
@@ -137,7 +203,7 @@ export const ExerciseInput = ({
 
       <div className="text-center mb-4">
         <p className="text-muted-foreground">
-          Target: {targetReps} reps at {suggestedWeight} lbs
+          Target: {targetReps} reps at {displaySuggestedWeight > 0 ? `${formatWeight(displaySuggestedWeight)} ${weightUnit}` : 'your starting weight'}
         </p>
       </div>
 

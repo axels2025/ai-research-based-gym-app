@@ -16,6 +16,7 @@ import { Register } from "./pages/Register";
 import { Profile } from "./pages/Profile";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { Onboarding } from "./pages/Onboarding";
+import { ResearchBasedDemo } from "./components/ResearchBasedDemo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +95,17 @@ const App = () => (
                 <RequireAuth>
                   <RequireOnboarding>
                     <Profile />
+                  </RequireOnboarding>
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/research-demo" 
+              element={
+                <RequireAuth>
+                  <RequireOnboarding>
+                    <Navigation />
+                    <ResearchBasedDemo />
                   </RequireOnboarding>
                 </RequireAuth>
               } 
