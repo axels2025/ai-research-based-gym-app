@@ -86,38 +86,27 @@ const getRetryDelay = (attempt: number): number => {
   return exponentialDelay + Math.random() * 1000;
 };
 
-// Claude AI API integration - updated to use config
+// Claude AI API integration - updated to use proxy
 async function callClaudeAPI(prompt: string, retryAttempt = 0): Promise<ClaudeResponse> {
-  let apiKey: string;
+  const proxyEndpoint = config.aiProxy.endpoint;
   
-  try {
-    apiKey = config.anthropic.apiKey;
-  } catch (error) {
+  if (!proxyEndpoint) {
     throw new AIWorkoutGenerationError(
-      'Anthropic API key not found. Please configure your API key.',
+      'AI proxy endpoint not configured. Please check your configuration.',
       'API_ERROR'
     );
   }
 
-  const messages: ClaudeMessage[] = [
-    {
-      role: 'user',
-      content: prompt
-    }
-  ];
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(proxyEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
+        prompt: prompt,
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
-        messages,
         temperature: 0.7,
       }),
     });

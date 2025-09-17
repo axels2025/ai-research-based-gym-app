@@ -142,4 +142,4 @@ export const expectedAIResponse = `Based on your profile, here's a personalized 
 - Track your bench press progress toward bodyweight goal
 - Include flexibility work at the end of each session
 
-This program avoids burpees and emphasizes your favorite exercises while building toward your bodyweight bench press goal!`;`;
+This program avoids burpees and emphasizes your favorite exercises while building toward your bodyweight bench press goal!`;

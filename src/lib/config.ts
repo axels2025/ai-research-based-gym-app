@@ -11,14 +11,14 @@ interface Config {
       appId: string;
       measurementId?: string;
     };
-    anthropic: {
-      apiKey: string;
+    aiProxy: {
+      endpoint: string;
     };
     environment: 'development' | 'production';
   }
   
   // Production configuration (safe to commit to git)
-  const productionConfig: Omit<Config, 'anthropic'> = {
+  const productionConfig: Config = {
     firebase: {
       apiKey: "AIzaSyC4U3RQY8nsLjwoqRuVPrA2-pZiw9Sl4qI", // Your actual Firebase API key
       authDomain: "ai-research-based-gym-app.firebaseapp.com",
@@ -27,11 +27,14 @@ interface Config {
       messagingSenderId: "203936492478",
       appId: "1:203936492478:web:767baf35996c4bc96227ef"
     },
+    aiProxy: {
+      endpoint: "https://ai-muscle-coach-proxy.axel-schneider.workers.dev"
+    },
     environment: 'production'
   };
   
   // Development configuration fallback
-  const developmentConfig: Omit<Config, 'anthropic'> = {
+  const developmentConfig: Config = {
     firebase: {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY || productionConfig.firebase.apiKey,
       authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || productionConfig.firebase.authDomain,
@@ -41,6 +44,9 @@ interface Config {
       appId: import.meta.env.VITE_FIREBASE_APP_ID || productionConfig.firebase.appId,
       measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
     },
+    aiProxy: {
+      endpoint: import.meta.env.VITE_AI_PROXY_ENDPOINT || productionConfig.aiProxy.endpoint
+    },
     environment: 'development'
   };
   
@@ -48,30 +54,8 @@ interface Config {
   const isDevelopment = import.meta.env.DEV;
   const baseConfig = isDevelopment ? developmentConfig : productionConfig;
   
-  // Handle Anthropic API key (still needs to be provided somehow)
-  function getAnthropicApiKey(): string {
-    // Try environment variable first (for local development)
-    const envKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-    if (envKey) {
-      return envKey;
-    }
-  
-    // For production, you could:
-    // 1. Use Firebase Functions with Secret Manager
-    // 2. Use a backend API endpoint
-    // 3. Prompt user to enter it in the UI
-    // 4. Use Firebase Remote Config (less secure)
-    
-    throw new Error('Anthropic API key not found. Please provide it via environment variable or implement alternative solution.');
-  }
-  
   // Export the final configuration
-  export const config: Config = {
-    ...baseConfig,
-    anthropic: {
-      apiKey: getAnthropicApiKey()
-    }
-  };
+  export const config: Config = baseConfig;
   
   // Validation function
   export function validateConfig(): boolean {
@@ -81,7 +65,8 @@ interface Config {
       config.firebase.projectId,
       config.firebase.storageBucket,
       config.firebase.messagingSenderId,
-      config.firebase.appId
+      config.firebase.appId,
+      config.aiProxy.endpoint
     ];
   
     const missing = required.filter(value => !value);
@@ -91,6 +76,6 @@ interface Config {
       return false;
     }
   
-    console.log(`✅ Configuration loaded for ${config.environment} environment`);
+    console.log(`✅ Configuration loaded for ${config.environment} environment with AI proxy: ${config.aiProxy.endpoint}`);
     return true;
   }
