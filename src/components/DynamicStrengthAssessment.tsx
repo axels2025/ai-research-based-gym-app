@@ -123,7 +123,7 @@ export function DynamicStrengthAssessment({
     loadAssessment();
   }, [userProfile]);
 
-  const totalSteps = loading ? 1 : assessmentExercises.length + 3; // exercises + experience + goal + preview
+  const totalSteps = loading ? 1 : assessmentExercises.length + 4; // intro + exercises + experience + goal + preview
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   const handleWeightChange = (exerciseName: string, value: string) => {
