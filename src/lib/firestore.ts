@@ -707,6 +707,9 @@ export async function createWeeklyAnalytics(userId: string, analyticsData: Omit<
   };
   
   await setDoc(analyticsRef, analytics);
+  return analytics;
+}
+
 // Update Exercise
 export async function updateExercise(exerciseId: string, updates: Partial<Exercise>) {
   const exerciseRef = doc(db, 'exercises', exerciseId);
@@ -822,13 +825,4 @@ export async function completeWorkoutWithMetrics(
   // Record performance for each exercise
   // This would typically be called from the workout completion flow
   // with individual exercise performance data
-}
-
-// Update Exercise
-export async function updateExercise(exerciseId: string, updates: Partial<Exercise>) {
-  const exerciseRef = doc(db, 'exercises', exerciseId);
-  await updateDoc(exerciseRef, {
-    ...updates,
-    updatedAt: Timestamp.now(),
-  });
 }

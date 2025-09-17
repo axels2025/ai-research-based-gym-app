@@ -30,6 +30,7 @@ import {
   type WorkoutGoal 
 } from "@/lib/researchBasedWorkout";
 import { toast } from "@/hooks/use-toast";
+import { type Workout } from "@/lib/firestore";
 
 interface ExercisePreview {
   id: string;

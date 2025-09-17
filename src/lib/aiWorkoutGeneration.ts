@@ -457,7 +457,7 @@ export async function regenerateWorkout(
   userProfile: UserProfile,
   workoutTitle: string,
   targetMuscles: string[]
-): Promise<AIWorkoutPlan['weeks'][0]['workouts'][0] | null> {
+): Promise<any | null> {
   try {
     const specificPrompt = `${generateAIPromptData(userProfile)}
 

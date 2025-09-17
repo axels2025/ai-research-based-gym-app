@@ -57,10 +57,15 @@ export function Step5HealthLimitations() {
     allergies: profile?.health?.allergies || [],
   });
 
-  const [newInjury, setNewInjury] = useState({
+  const [newInjury, setNewInjury] = useState<{
+    bodyPart: string;
+    description: string;
+    severity: 'mild' | 'moderate' | 'severe';
+    timeframe: string;
+  }>({
     bodyPart: '',
     description: '',
-    severity: 'mild' as const,
+    severity: 'mild',
     timeframe: '',
   });
 
@@ -254,7 +259,7 @@ export function Step5HealthLimitations() {
                   <Label htmlFor="severity">Severity</Label>
                   <Select
                     value={newInjury.severity}
-                    onValueChange={(value: 'mild' | 'moderate' | 'severe') => 
+                    onValueChange={(value) => 
                       setNewInjury({ ...newInjury, severity: value as 'mild' | 'moderate' | 'severe' })
                     }
                   >

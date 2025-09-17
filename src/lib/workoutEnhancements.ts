@@ -1,3 +1,4 @@
+import { Timestamp } from 'firebase/firestore';
 import { 
   getUserPerformanceRecords, 
   getUserProgressions, 
@@ -73,7 +74,10 @@ export class WorkoutEnhancementEngine {
     const progressionSuggestions: Record<string, ProgressionSuggestion> = {};
     for (const progression of progressions) {
       const suggestion = ProgressiveOverloadEngine.calculateProgressionSuggestion(
-        progression,
+        {
+          ...progression,
+          recentPerformance: [] // Add empty array as default
+        },
         userProfile.experience.trainingExperience as 'beginner' | 'intermediate' | 'advanced',
         this.classifyExerciseType(progression.exerciseName)
       );
@@ -116,10 +120,7 @@ export class WorkoutEnhancementEngine {
     // Generate performance insights
     const performanceInsights = this.generatePerformanceInsights(
       performanceRecords,
-      progressions.map(prog => ({
-        ...prog,
-        recentPerformance: [] // Add empty array as default
-      })),
+      progressions.map(prog => prog),
       analytics
     );
 
@@ -215,7 +216,16 @@ export class WorkoutEnhancementEngine {
       userProfile.experience.trainingExperience as 'beginner' | 'intermediate' | 'advanced',
       userProfile.health.limitations || [],
       {
-        preferredEquipment: userProfile.experience.equipmentAccess as EquipmentType[],
+        preferredEquipment: userProfile.experience.equipmentAccess?.map(access => {
+          // Map EquipmentAccess to EquipmentType
+          const mapping: Record<string, string> = {
+            'none': 'bodyweight',
+            'basic': 'dumbbells',
+            'full-gym': 'barbell',
+            'advanced': 'machines'
+          };
+          return mapping[access] || 'dumbbells';
+        }) as EquipmentType[],
         avoidedMovements: userProfile.preferences.dislikedExercises || []
       }
     );
