@@ -80,9 +80,19 @@ export function calculateWarmupSets(
   const emptyWeight = EQUIPMENT_EMPTY_WEIGHTS[equipmentType];
   const restPeriods = REST_PERIODS[goal].warmup;
   
-  // Ensure working weight is reasonable for calculations
+  // Ensure working weight is reasonable for calculations with more conservative minimum
   if (workingWeight <= emptyWeight) {
-    workingWeight = emptyWeight + 20; // minimum meaningful working weight
+    workingWeight = emptyWeight + 10; // More conservative minimum working weight
+  }
+  
+  // Add maximum reasonable working weight check for safety
+  const maxReasonableWeight = equipmentType === 'barbell' ? 200 : 
+                             equipmentType === 'dumbbell' ? 50 : 
+                             equipmentType === 'machine' ? 100 : workingWeight;
+  
+  if (workingWeight > maxReasonableWeight) {
+    console.warn(`Working weight ${workingWeight}kg seems high for ${equipmentType}. Capping at ${maxReasonableWeight}kg`);
+    workingWeight = maxReasonableWeight;
   }
   
   const warmupSets: WarmupSet[] = [];
