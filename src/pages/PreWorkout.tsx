@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { PreWorkoutOverview } from "@/components/PreWorkoutOverview";
 import { ExerciseSubstitutionModal } from "@/components/ExerciseSubstitutionModal";
 import { ExerciseSetup } from "@/components/ExerciseSetup";
-import { StrengthAssessment, type StrengthAssessmentData } from "@/components/StrengthAssessment";
+import { DynamicStrengthAssessment, type DynamicAssessmentData } from "@/components/DynamicStrengthAssessment";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -544,12 +544,12 @@ const PreWorkout = () => {
     });
   };
 
-  const handleStrengthAssessmentComplete = (assessmentData: StrengthAssessmentData) => {
+  const handleStrengthAssessmentComplete = (assessmentData: DynamicAssessmentData) => {
     if (!workout) return;
 
     // Update all exercises with protocols from the assessment
     const updatedExercises = workout.exercises.map(exercise => {
-      const protocol = assessmentData.protocols[exercise.name];
+      const protocol = assessmentData.generatedProtocols[exercise.name];
       if (protocol) {
         return {
           ...exercise,
@@ -572,7 +572,7 @@ const PreWorkout = () => {
     setShowStrengthAssessment(false);
     toast({
       title: 'Assessment Complete! 🎉',
-      description: `Generated protocols for ${Object.keys(assessmentData.protocols).length} exercises.`,
+      description: `Generated protocols for ${Object.keys(assessmentData.generatedProtocols).length} exercises with ${Math.round(assessmentData.assessmentCompletion)}% program coverage.`,
     });
   };
 
@@ -838,11 +838,12 @@ const PreWorkout = () => {
         />
       )}
       
-      {/* Strength Assessment Modal */}
-      {showStrengthAssessment && (
+      {/* Dynamic Strength Assessment Modal */}
+      {showStrengthAssessment && userProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-background rounded-lg max-w-4xl w-full max-h-[95vh] overflow-y-auto">
-            <StrengthAssessment
+            <DynamicStrengthAssessment
+              userProfile={userProfile}
               onAssessmentComplete={handleStrengthAssessmentComplete}
               onSkip={() => setShowStrengthAssessment(false)}
             />
