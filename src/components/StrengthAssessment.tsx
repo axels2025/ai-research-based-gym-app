@@ -43,49 +43,49 @@ const EXERCISE_ASSESSMENTS = [
   {
     id: 'benchPress',
     name: 'Bench Press',
-    description: 'Upper body pushing strength',
+    description: 'Upper body pushing strength assessment',
     placeholder: 'e.g., 60',
     icon: '🏋️',
     tips: [
-      'Weight you can press for 6-8 comfortable reps',
-      'With good form and control',
-      'Not your 1-rep max'
+      'Enter a weight you can comfortably press for 6-8 repetitions',
+      'Use strict form with controlled movement',
+      'This should feel moderately challenging, not your maximum'
     ]
   },
   {
     id: 'squat', 
     name: 'Squat',
-    description: 'Lower body strength',
+    description: 'Lower body strength assessment',
     placeholder: 'e.g., 80',
     icon: '🦵',
     tips: [
-      'Full depth squat with good form',
-      '6-8 reps you can do comfortably',
-      'Below parallel depth'
+      'Weight for 6-8 full-depth squats with good form',
+      'Descend below parallel if mobility allows',
+      'Choose a weight that challenges you but maintains technique'
     ]
   },
   {
     id: 'deadlift',
     name: 'Deadlift',
-    description: 'Posterior chain strength',
+    description: 'Posterior chain strength assessment',
     placeholder: 'e.g., 100',
     icon: '💪',
     tips: [
-      'From floor to standing position',
-      'Weight for 5-6 controlled reps',
-      'Proper hip hinge movement'
+      'Weight you can deadlift from the floor for 5-6 reps',
+      'Focus on proper hip hinge and neutral spine',
+      'Should be challenging but allow perfect form'
     ]
   },
   {
     id: 'overheadPress',
     name: 'Overhead Press',
-    description: 'Vertical pushing strength',
+    description: 'Vertical pushing strength assessment',
     placeholder: 'e.g., 40',
     icon: '🔝',
     tips: [
-      'Strict overhead press (no leg drive)',
-      '8-10 reps with good form',
-      'Full range of motion'
+      'Strict overhead press weight for 8-10 reps',
+      'No leg drive or back arch - purely shoulder strength',
+      'Full range of motion from shoulders to overhead'
     ]
   }
 ];
@@ -145,7 +145,7 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
   const [primaryGoal, setPrimaryGoal] = useState<WorkoutGoal>('strength');
   const [showPreview, setShowPreview] = useState(false);
 
-  const totalSteps = 4; // Exercise weights + experience + goal + preview
+  const totalSteps = 7; // 4 exercises + experience + goal + preview
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   const handleWeightChange = (exerciseId: string, weight: number) => {
@@ -221,8 +221,12 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
         <Alert className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200">
           <Info className="w-4 h-4" />
           <AlertDescription>
-            <strong>What weight can you {exercise.name.toLowerCase()} comfortably?</strong>
-            <ul className="mt-2 text-sm list-disc list-inside">
+            <strong>What's your comfortable {exercise.name.toLowerCase()} weight?</strong>
+            <p className="text-sm mt-1 mb-2">
+              We're looking for a weight you can handle with good form - not your maximum. 
+              This helps our AI create the right starting intensity for your personalized programs.
+            </p>
+            <ul className="text-sm list-disc list-inside">
               {exercise.tips.map((tip, index) => (
                 <li key={index}>{tip}</li>
               ))}
@@ -406,12 +410,16 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
         <Alert className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200">
           <CheckCircle className="w-4 h-4" />
           <AlertDescription>
-            <strong>Your workouts will include:</strong>
-            <ul className="mt-1 text-sm list-disc list-inside">
+            <strong>This is just the beginning!</strong>
+            <p className="text-sm mt-1 mb-2">
+              These assessments provide a starting baseline. Our AI will continuously learn from your 
+              workout performance, feedback, and progress to automatically refine and optimize your programs.
+            </p>
+            <ul className="text-sm list-disc list-inside">
               <li>Research-based warm-up progressions for each exercise</li>
               <li>Optimized rest periods based on your goal</li>
-              <li>Progressive overload recommendations</li>
-              <li>Form cues and coaching tips</li>
+              <li>Adaptive progressive overload recommendations</li>
+              <li>Form cues and real-time coaching tips</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -440,6 +448,21 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
               Skip
             </Button>
           </div>
+          
+          {currentStep === 0 && (
+            <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200">
+              <Info className="w-4 h-4" />
+              <AlertDescription>
+                <strong>Quick Assessment to Personalize Your Training</strong>
+                <p className="mt-1 text-sm">
+                  We'll assess your comfortable training weights for key movements. This gives our AI a starting baseline 
+                  to create effective workouts. As you progress, the system will automatically adjust your programs 
+                  based on your performance data and feedback.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <Progress value={progress} className="h-2" />
           <div className="text-sm text-muted-foreground mt-1">
             Step {currentStep + 1} of {totalSteps}
