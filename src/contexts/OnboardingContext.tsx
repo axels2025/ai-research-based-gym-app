@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { getUserProfile, createUserProfile, updateOnboardingStep, completeOnboarding, type UserProfile } from '@/lib/userProfiles';
+import { 
+  getUserProfile, 
+  createUserProfile, 
+  updateOnboardingStep, 
+  completeOnboarding, 
+  type UserProfile,
+  type PersonalInfo,
+  type Experience,
+  type Goals,
+  type Availability,
+  type HealthInfo,
+  type Preferences,
+  type Motivation
+} from '@/lib/userProfiles';
 import { isFirebaseConfigured } from '@/lib/firebase';
 
 interface OnboardingContextType {
@@ -47,7 +60,7 @@ export function OnboardingProvider({ children }: OnboardingProviderProps) {
     experience: {} as Experience,
     goals: {} as Goals,
     availability: {} as Availability,
-    health: { injuryHistory: [], limitations: [], medicalConditions: [], painAreas: [] },
+    health: { injuryHistory: [], limitations: [], medicalConditions: [], painAreas: [] } as HealthInfo,
     preferences: { favoriteExercises: [], dislikedExercises: [] } as Preferences,
     motivation: {} as Motivation,
     onboardingCompleted: false,

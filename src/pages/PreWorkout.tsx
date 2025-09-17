@@ -66,7 +66,7 @@ interface ExercisePreview {
   hasHistoricalData?: boolean;
 }
 
-interface WorkoutOverview extends BaseWorkout {
+interface WorkoutOverview extends Omit<Workout, 'exercises'> {
   exercises: ExercisePreview[];
   warmupExercises: {
     name: string;

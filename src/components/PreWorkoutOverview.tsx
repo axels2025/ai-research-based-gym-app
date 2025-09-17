@@ -24,7 +24,7 @@ import {
 import { type Workout, type Exercise } from "@/lib/firestore";
 import { ProgressionSuggestion } from "@/lib/progressiveOverload";
 
-interface ExercisePreview extends Exercise {
+interface ExercisePreview extends Omit<Exercise, 'progressionSuggestion'> {
   previousPerformance?: {
     weight: number;
     reps: number;
@@ -32,14 +32,18 @@ interface ExercisePreview extends Exercise {
     rpe?: number;
     date: Date;
   };
-  progressionSuggestion?: ProgressionSuggestion;
+  progressionSuggestion?: {
+    type: 'weight' | 'reps' | 'sets';
+    suggestion: number;
+    reason: string;
+  };
   estimatedRestTime: number;
   muscleActivation: string[];
   difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
   formCues: string[];
 }
 
-interface WorkoutOverview extends Workout {
+interface WorkoutOverview extends Omit<Workout, 'exercises'> {
   exercises: ExercisePreview[];
   warmupExercises: {
     name: string;
@@ -392,7 +396,7 @@ export const PreWorkoutOverview = ({
                     <strong>Progression Suggestion:</strong> {exercise.progressionSuggestion.reason}
                     <br />
                     <span className="text-sm">
-                      {exercise.progressionSuggestion.implementationNotes}
+                      {exercise.progressionSuggestion.reason}
                     </span>
                   </AlertDescription>
                 </Alert>

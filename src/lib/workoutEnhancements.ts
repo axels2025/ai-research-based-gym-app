@@ -94,7 +94,16 @@ export class WorkoutEnhancementEngine {
         userProfile.experience.trainingExperience as 'beginner' | 'intermediate' | 'advanced',
         userProfile.health.limitations || [],
         {
-          preferredEquipment: userProfile.experience.equipmentAccess as EquipmentType[],
+          preferredEquipment: userProfile.experience.equipmentAccess?.map(access => {
+            // Map EquipmentAccess to EquipmentType
+            const mapping: Record<string, string> = {
+              'none': 'bodyweight',
+              'basic': 'dumbbells',
+              'full-gym': 'barbell',
+              'advanced': 'machines'
+            };
+            return mapping[access] || 'dumbbells';
+          }) as EquipmentType[],
           avoidedMovements: userProfile.preferences.dislikedExercises || []
         }
       );
@@ -107,7 +116,10 @@ export class WorkoutEnhancementEngine {
     // Generate performance insights
     const performanceInsights = this.generatePerformanceInsights(
       performanceRecords,
-      progressions,
+      progressions.map(prog => ({
+        ...prog,
+        recentPerformance: [] // Add empty array as default
+      })),
       analytics
     );
 
@@ -248,7 +260,7 @@ export class WorkoutEnhancementEngine {
 
     // Create analytics record
     return await createWeeklyAnalytics(userId, {
-      weekEnding: new Date(weekEndDate),
+      weekEnding: Timestamp.fromDate(new Date(weekEndDate)),
       strengthMetrics,
       volumeMetrics: {
         totalVolume: weekVolume.totalVolume,

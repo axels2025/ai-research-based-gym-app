@@ -255,7 +255,7 @@ export function Step5HealthLimitations() {
                   <Select
                     value={newInjury.severity}
                     onValueChange={(value: 'mild' | 'moderate' | 'severe') => 
-                      setNewInjury({ ...newInjury, severity: value })
+                      setNewInjury({ ...newInjury, severity: value as 'mild' | 'moderate' | 'severe' })
                     }
                   >
                     <SelectTrigger>

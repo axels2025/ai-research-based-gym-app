@@ -586,7 +586,7 @@ export function Step7ReviewConfirmation() {
               <Checkbox
                 id="terms"
                 checked={agreed}
-                onCheckedChange={setAgreed}
+                onCheckedChange={(checked) => setAgreed(checked === true)}
                 className="mt-1"
               />
               <div className="space-y-2">

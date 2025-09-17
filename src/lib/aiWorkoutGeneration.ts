@@ -290,6 +290,11 @@ async function convertToWorkoutProgram(
       totalWorkouts,
       aiGenerated: true,
       generationSource: 'ai',
+      currentRotation: 1,
+      totalRotations: 4,
+      rotationCompletedWeeks: 0,
+      isActive: true,
+      regenerationCount: 0
     });
 
     // Create all workouts

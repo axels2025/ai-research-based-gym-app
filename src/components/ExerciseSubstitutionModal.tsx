@@ -69,7 +69,16 @@ export const ExerciseSubstitutionModal = ({
         userProfile?.experience.trainingExperience as 'beginner' | 'intermediate' | 'advanced' || 'intermediate',
         userProfile?.health.limitations || [],
         {
-          preferredEquipment: userProfile?.experience.equipmentAccess as EquipmentType[] || availableEquipment,
+          preferredEquipment: userProfile?.experience.equipmentAccess?.map(access => {
+            // Map EquipmentAccess to EquipmentType
+            const mapping: Record<string, string> = {
+              'none': 'bodyweight',
+              'basic': 'dumbbells',
+              'full-gym': 'barbell',
+              'advanced': 'machines'
+            };
+            return mapping[access] || 'dumbbells';
+          }) as EquipmentType[] || availableEquipment,
           avoidedMovements: userProfile?.preferences.dislikedExercises || []
         }
       );

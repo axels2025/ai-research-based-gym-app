@@ -471,10 +471,11 @@ export const Workout = () => {
                 Skip Set
               </Button>
               <Button
-                onClick={() => handleSetComplete(
-                  currentSet.weight || currentExercise.suggestedWeight,
-                  typeof currentSet.reps === 'number' ? currentSet.reps : currentExercise.reps
-                )}
+                onClick={() => {
+                  const weight = Number(currentSet.weight || currentExercise.suggestedWeight);
+                  const reps = typeof currentSet.reps === 'number' ? currentSet.reps : Number(currentExercise.reps);
+                  handleSetComplete(weight, reps);
+                }}
                 className="flex-1 bg-primary hover:bg-primary/90"
               >
                 <CheckCircle2 className="w-4 h-4 mr-2" />

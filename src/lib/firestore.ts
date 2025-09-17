@@ -249,13 +249,13 @@ export async function createWorkoutProgram(userId: string, programData: Omit<Wor
   const program: WorkoutProgram = {
     id: programRef.id,
     userId,
-    currentRotation: 1,
-    totalRotations: 4,
-    rotationCompletedWeeks: 0,
-    isActive: true,
-    regenerationCount: 0,
-    aiGenerated: false,
-    generationSource: 'default',
+    currentRotation: programData.currentRotation || 1,
+    totalRotations: programData.totalRotations || 4,
+    rotationCompletedWeeks: programData.rotationCompletedWeeks || 0,
+    isActive: programData.isActive !== undefined ? programData.isActive : true,
+    regenerationCount: programData.regenerationCount || 0,
+    aiGenerated: programData.aiGenerated || false,
+    generationSource: programData.generationSource || 'default',
     ...programData,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -290,8 +290,8 @@ export async function createWorkout(userId: string, workoutData: Omit<Workout, '
   const workout: Workout = {
     id: workoutRef.id,
     userId,
-    rotation: Math.ceil(workoutData.week / 2), // Calculate which 2-week block
-    rotationWeek: workoutData.week % 2 === 0 ? 2 : 1, // Week within rotation
+    rotation: workoutData.rotation || Math.ceil(workoutData.week / 2), // Calculate which 2-week block
+    rotationWeek: workoutData.rotationWeek || (workoutData.week % 2 === 0 ? 2 : 1), // Week within rotation
     ...workoutData,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -387,6 +387,13 @@ export async function initializeDefaultProgram(userId: string) {
     totalWeeks: 8,
     workoutsCompleted: 0,
     totalWorkouts: 24,
+    currentRotation: 1,
+    totalRotations: 4,
+    rotationCompletedWeeks: 0,
+    isActive: true,
+    regenerationCount: 0,
+    aiGenerated: false,
+    generationSource: 'default'
   });
 
   // Create default workouts
@@ -399,6 +406,8 @@ export async function initializeDefaultProgram(userId: string) {
       exercises: 6,
       estimatedTime: 75,
       isCompleted: false,
+      rotation: 1,
+      rotationWeek: 1
     },
     {
       programId: program.id,
@@ -408,6 +417,8 @@ export async function initializeDefaultProgram(userId: string) {
       exercises: 5,
       estimatedTime: 65,
       isCompleted: false,
+      rotation: 1,
+      rotationWeek: 1
     },
     {
       programId: program.id,
@@ -417,6 +428,8 @@ export async function initializeDefaultProgram(userId: string) {
       exercises: 7,
       estimatedTime: 85,
       isCompleted: false,
+      rotation: 1,
+      rotationWeek: 1
     },
   ];
 
@@ -510,6 +523,10 @@ export async function regenerateWorkoutProgram(
     aiGenerated: true,
     generationSource: 'regenerated',
     rotationStartDate: Timestamp.now(),
+    currentRotation: 1,
+    totalRotations: 4,
+    rotationCompletedWeeks: 0,
+    isActive: true
   });
   
   return newProgram;
@@ -690,7 +707,13 @@ export async function createWeeklyAnalytics(userId: string, analyticsData: Omit<
   };
   
   await setDoc(analyticsRef, analytics);
-  return analytics;
+// Update Exercise
+export async function updateExercise(exerciseId: string, updates: Partial<Exercise>) {
+  const exerciseRef = doc(db, 'exercises', exerciseId);
+  await updateDoc(exerciseRef, {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
 }
 
 export async function getUserAnalytics(userId: string, weeks?: number): Promise<ProgressAnalytics[]> {
@@ -799,4 +822,13 @@ export async function completeWorkoutWithMetrics(
   // Record performance for each exercise
   // This would typically be called from the workout completion flow
   // with individual exercise performance data
+}
+
+// Update Exercise
+export async function updateExercise(exerciseId: string, updates: Partial<Exercise>) {
+  const exerciseRef = doc(db, 'exercises', exerciseId);
+  await updateDoc(exerciseRef, {
+    ...updates,
+    updatedAt: Timestamp.now(),
+  });
 }
