@@ -218,15 +218,15 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
           <p className="text-muted-foreground">{exercise.description}</p>
         </div>
 
-        <Alert className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200">
-          <Info className="w-4 h-4" />
-          <AlertDescription>
+        <Alert className="mb-6 bg-primary/10 text-foreground border-primary/20">
+          <Info className="w-4 h-4 text-primary" />
+          <AlertDescription className="text-foreground">
             <strong>What's your comfortable {exercise.name.toLowerCase()} weight?</strong>
-            <p className="text-sm mt-1 mb-2">
+            <p className="text-sm mt-1 mb-2 text-muted-foreground">
               We're looking for a weight you can handle with good form - not your maximum. 
               This helps our AI create the right starting intensity for your personalized programs.
             </p>
-            <ul className="text-sm list-disc list-inside">
+            <ul className="text-sm list-disc list-inside text-muted-foreground">
               {exercise.tips.map((tip, index) => (
                 <li key={index}>{tip}</li>
               ))}
@@ -407,15 +407,15 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
           </div>
         </div>
 
-        <Alert className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200">
-          <CheckCircle className="w-4 h-4" />
-          <AlertDescription>
+        <Alert className="mb-6 bg-success/10 text-foreground border-success/20">
+          <CheckCircle className="w-4 h-4 text-success" />
+          <AlertDescription className="text-foreground">
             <strong>This is just the beginning!</strong>
-            <p className="text-sm mt-1 mb-2">
+            <p className="text-sm mt-1 mb-2 text-muted-foreground">
               These assessments provide a starting baseline. Our AI will continuously learn from your 
               workout performance, feedback, and progress to automatically refine and optimize your programs.
             </p>
-            <ul className="text-sm list-disc list-inside">
+            <ul className="text-sm list-disc list-inside text-muted-foreground">
               <li>Research-based warm-up progressions for each exercise</li>
               <li>Optimized rest periods based on your goal</li>
               <li>Adaptive progressive overload recommendations</li>
@@ -450,11 +450,11 @@ export const StrengthAssessment = ({ onAssessmentComplete, onSkip }: StrengthAss
           </div>
           
           {currentStep === 0 && (
-            <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200">
-              <Info className="w-4 h-4" />
-              <AlertDescription>
+            <Alert className="mb-4 bg-primary/10 text-foreground border-primary/20">
+              <Info className="w-4 h-4 text-primary" />
+              <AlertDescription className="text-foreground">
                 <strong>Quick Assessment to Personalize Your Training</strong>
-                <p className="mt-1 text-sm">
+                <p className="mt-1 text-sm text-muted-foreground">
                   We'll assess your comfortable training weights for key movements. This gives our AI a starting baseline 
                   to create effective workouts. As you progress, the system will automatically adjust your programs 
                   based on your performance data and feedback.
