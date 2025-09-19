@@ -495,15 +495,7 @@ export async function canRegenerateProgram(userId: string): Promise<{
     };
   }
   
-  // Check if user has made good progress
-  const progressPercentage = (activeProgram.workoutsCompleted / activeProgram.totalWorkouts) * 100;
-  if (progressPercentage < 50) {
-    return {
-      canRegenerate: false,
-      reason: 'Consider completing more of your current program first.',
-    };
-  }
-  
+  // Users can regenerate anytime - no restrictions
   return { canRegenerate: true };
 }
 
