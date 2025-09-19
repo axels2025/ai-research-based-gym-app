@@ -7,7 +7,7 @@ import { ExerciseSubstitutionModal } from "@/components/ExerciseSubstitutionModa
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, CheckCircle2, RotateCcw, Flame, Zap, Target, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, RotateCcw, Flame, Zap, Target, Clock, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { type ExerciseAlternative } from "@/lib/exerciseSubstitution";
@@ -41,122 +41,17 @@ interface EnhancedExercise {
   trainingGoal?: 'strength' | 'hypertrophy' | 'endurance';
 }
 
-// Enhanced workout structure with research-based protocols - should match PreWorkout data
-const getEnhancedWorkout = (hasHistoricalData: boolean = true): { name: string; exercises: EnhancedExercise[]; totalEstimatedTime: number } => ({
-  name: "Push Day - Upper Body",
-  exercises: [
-    {
-      id: '1',
-      name: "Barbell Bench Press",
-      researchProtocol: hasHistoricalData ? createExerciseProtocol(
-        "Barbell Bench Press",
-        185, // working weight
-        8,   // target reps
-        'barbell',
-        'strength'
-      ) : undefined,
-      sets: 4,
-      reps: 8,
-      lastWeight: hasHistoricalData ? 180 : 0,
-      suggestedWeight: hasHistoricalData ? 185 : 0,
-      restTime: 180,
-      equipmentType: 'barbell',
-      trainingGoal: 'strength'
-    },
-    {
-      id: '2',
-      name: "Overhead Press",
-      researchProtocol: hasHistoricalData ? createExerciseProtocol(
-        "Overhead Press",
-        100,
-        10,
-        'barbell',
-        'hypertrophy'
-      ) : undefined,
-      sets: 3,
-      reps: 10,
-      lastWeight: hasHistoricalData ? 95 : 0,
-      suggestedWeight: hasHistoricalData ? 100 : 0,
-      restTime: 120,
-      equipmentType: 'barbell',
-      trainingGoal: 'hypertrophy'
-    },
-    {
-      id: '3',
-      name: "Incline Dumbbell Press",
-      researchProtocol: hasHistoricalData ? createExerciseProtocol(
-        "Incline Dumbbell Press",
-        75,
-        12,
-        'dumbbell',
-        'hypertrophy'
-      ) : undefined,
-      sets: 3,
-      reps: 12,
-      lastWeight: hasHistoricalData ? 70 : 0,
-      suggestedWeight: hasHistoricalData ? 75 : 0,
-      restTime: 90,
-      equipmentType: 'dumbbell',
-      trainingGoal: 'hypertrophy'
-    },
-    {
-      id: '4',
-      name: "Dips",
-      researchProtocol: hasHistoricalData ? createExerciseProtocol(
-        "Dips",
-        25, // body weight + added weight
-        11,
-        'bodyweight',
-        'hypertrophy'
-      ) : undefined,
-      sets: 3,
-      reps: 11,
-      lastWeight: hasHistoricalData ? 20 : 0,
-      suggestedWeight: hasHistoricalData ? 25 : 0,
-      restTime: 90,
-      equipmentType: 'bodyweight',
-      trainingGoal: 'hypertrophy'
-    },
-    {
-      id: '5',
-      name: "Lateral Raises",
-      researchProtocol: hasHistoricalData ? createExerciseProtocol(
-        "Lateral Raises",
-        20,
-        17,
-        'dumbbell',
-        'hypertrophy'
-      ) : undefined,
-      sets: 3,
-      reps: 17,
-      lastWeight: hasHistoricalData ? 17 : 0,
-      suggestedWeight: hasHistoricalData ? 20 : 0,
-      restTime: 60,
-      equipmentType: 'dumbbell',
-      trainingGoal: 'hypertrophy'
-    },
-    {
-      id: '6',
-      name: "Tricep Pushdowns",
-      researchProtocol: hasHistoricalData ? createExerciseProtocol(
-        "Tricep Pushdowns",
-        50,
-        13,
-        'machine',
-        'hypertrophy'
-      ) : undefined,
-      sets: 3,
-      reps: 13,
-      lastWeight: hasHistoricalData ? 45 : 0,
-      suggestedWeight: hasHistoricalData ? 50 : 0,
-      restTime: 60,
-      equipmentType: 'machine',
-      trainingGoal: 'hypertrophy'
-    }
-  ],
-  // Calculate total time based on research protocols
-  totalEstimatedTime: hasHistoricalData ? 75 : 45 // Less time without warm-ups
-});
+// Enhanced workout structure - requires assessment data or user input for safe weights
+const getEnhancedWorkout = (): { name: string; exercises: EnhancedExercise[]; totalEstimatedTime: number } => {
+  // This function should not be used anymore - workouts should come from proper data flow
+  console.warn('getEnhancedWorkout called - workouts should come from assessment data or database');
+  
+  return {
+    name: "Workout Setup Required",
+    exercises: [],
+    totalEstimatedTime: 0
+  };
+};
 
 export const Workout = () => {
   const navigate = useNavigate();
@@ -211,38 +106,54 @@ export const Workout = () => {
   const currentSet = currentExerciseSets[currentSetIndex];
   const isLastSetOfExercise = currentSetIndex === currentExerciseSets.length - 1;
 
-  // Load workout data on mount
+  // Load workout data on mount - require proper data or redirect to assessment
   useEffect(() => {
     const loadWorkout = async () => {
       if (!workoutId && !currentUser) {
         setLoading(false);
+        toast({
+          title: 'Setup Required',
+          description: 'Please complete your assessment first.',
+          variant: 'destructive'
+        });
+        navigate('/pre-workout');
         return;
       }
 
       try {
-        // Check if user has historical data by looking for performance records
-        // In a real implementation, this would be loaded from the database
-        const hasHistoricalData = currentUser ? true : false; // Simplified for demo
-        
-        // Load workout that matches PreWorkout structure
-        const enhancedWorkout = getEnhancedWorkout(hasHistoricalData);
-        setWorkout(enhancedWorkout);
+        // Try to load workout from database/assessment data
+        // This should come from proper data flow, not hardcoded data
+        if (workoutId) {
+          const workoutData = await getWorkoutById(workoutId);
+          if (workoutData) {
+            // Convert database workout to enhanced format
+            setWorkout({
+              name: workoutData.title || 'Workout',
+              exercises: [], // This should be populated from proper data
+              totalEstimatedTime: workoutData.estimatedTime || 45
+            });
+          } else {
+            throw new Error('Workout not found');
+          }
+        } else {
+          throw new Error('No workout ID provided');
+        }
       } catch (error) {
         console.error('Error loading workout:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load workout data',
+          title: 'Setup Required',
+          description: 'Please complete your strength assessment first to get safe weight recommendations.',
           variant: 'destructive'
         });
-        // Fallback
-        setWorkout(getEnhancedWorkout(false));
+        navigate('/pre-workout');
+        return;
       } finally {
         setLoading(false);
       }
     };
 
     loadWorkout();
-  }, [workoutId, currentUser]);
+  }, [workoutId, currentUser, navigate]);
 
   const handleSetComplete = (weight: number, actualReps: number, rpe?: number) => {
     if (!currentSet) return;
@@ -369,13 +280,18 @@ export const Workout = () => {
     );
   }
 
-  if (!currentExercise || !currentSet) {
+  if (!currentExercise || !currentSet || workout.exercises.length === 0) {
     return (
       <div className="min-h-screen bg-[var(--gradient-background)] flex items-center justify-center">
-        <Card className="p-8 text-center">
-          <h2 className="text-xl font-semibold mb-2">Workout Error</h2>
-          <p className="text-muted-foreground mb-4">Could not load workout data.</p>
-          <Button onClick={() => navigate('/')}>Back to Dashboard</Button>
+        <Card className="p-8 text-center max-w-md">
+          <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Assessment Required</h2>
+          <p className="text-muted-foreground mb-4">
+            To ensure your safety, please complete the strength assessment to get personalized weight recommendations.
+          </p>
+          <Button onClick={() => navigate('/pre-workout')} className="w-full">
+            Complete Assessment
+          </Button>
         </Card>
       </div>
     );

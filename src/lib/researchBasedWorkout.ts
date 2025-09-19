@@ -85,14 +85,17 @@ export function calculateWarmupSets(
     workingWeight = emptyWeight + 10; // More conservative minimum working weight
   }
   
-  // Add maximum reasonable working weight check for safety
-  const maxReasonableWeight = equipmentType === 'barbell' ? 200 : 
-                             equipmentType === 'dumbbell' ? 50 : 
-                             equipmentType === 'machine' ? 100 : workingWeight;
+  // Safety check: ensure working weight is not dangerously high
+  // Only warn, don't cap - let users decide but warn them
+  const reasonableMaximums = {
+    barbell: 300,  // Very experienced lifters might use this
+    dumbbell: 80,  // Heavy dumbbells exist
+    machine: 200,  // Machine stacks can be high
+    bodyweight: 100 // With added weight
+  };
   
-  if (workingWeight > maxReasonableWeight) {
-    console.warn(`Working weight ${workingWeight}kg seems high for ${equipmentType}. Capping at ${maxReasonableWeight}kg`);
-    workingWeight = maxReasonableWeight;
+  if (workingWeight > reasonableMaximums[equipmentType]) {
+    console.warn(`Working weight ${workingWeight}kg is very high for ${equipmentType}. Please ensure this is correct.`);
   }
   
   const warmupSets: WarmupSet[] = [];

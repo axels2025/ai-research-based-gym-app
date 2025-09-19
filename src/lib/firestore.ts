@@ -484,14 +484,8 @@ export async function canRegenerateProgram(userId: string): Promise<{
   const programAge = Date.now() - activeProgram.createdAt.seconds * 1000;
   const daysSinceCreation = Math.floor(programAge / (1000 * 60 * 60 * 24));
   
-  // Don't allow regeneration if program is less than 7 days old
-  if (daysSinceCreation < 7) {
-    return {
-      canRegenerate: false,
-      reason: 'Program is too new. Give it at least a week to see progress.',
-      suggestedWaitDays: 7 - daysSinceCreation,
-    };
-  }
+  // Allow immediate regeneration - users control when they want a new program
+  // Removed 7-day restriction per user request
   
   // Encourage regeneration after 4-6 weeks
   if (daysSinceCreation >= 28) {

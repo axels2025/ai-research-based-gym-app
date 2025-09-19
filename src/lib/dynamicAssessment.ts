@@ -313,22 +313,21 @@ function createAssessmentExercise(
 }
 
 /**
- * Get placeholder weight based on exercise and equipment
+ * Get placeholder weight based on exercise and equipment - conservative estimates only
  */
 function getPlaceholderWeight(mapping: ExerciseMapping): string {
-  const weights: Record<string, string> = {
-    'Bench Press': 'e.g., 60',
-    'Squat': 'e.g., 80', 
-    'Deadlift': 'e.g., 100',
-    'Overhead Press': 'e.g., 40',
-    'Bent-over Row': 'e.g., 60',
-    'Pull-up': 'Bodyweight',
-    'Dips': 'Bodyweight',
-    'Bulgarian Split Squat': 'Bodyweight + 10kg',
-    'Hip Thrust': 'e.g., 80'
-  };
+  // Provide conservative examples based on equipment type, not specific weights
+  if (mapping.equipment === 'bodyweight') {
+    return 'Bodyweight only';
+  } else if (mapping.equipment === 'barbell') {
+    return 'e.g., 30-40kg';
+  } else if (mapping.equipment === 'dumbbell') {
+    return 'e.g., 10-15kg';
+  } else if (mapping.equipment === 'machine') {
+    return 'e.g., 20-30kg';
+  }
   
-  return weights[mapping.name] || 'e.g., 50';
+  return 'Enter comfortable weight';
 }
 
 /**
@@ -394,31 +393,36 @@ export async function createDynamicAssessment(
   } catch (error) {
     console.error('Failed to create dynamic assessment:', error);
     
-    // Fallback to basic assessment if program generation fails
-    return createFallbackAssessment(userProfile);
+    // Fallback with basic exercises - NO HARDCODED WEIGHTS
+    const basicExercises: AssessmentExercise[] = [
+      {
+        id: 'squat',
+        name: 'Squat',
+        category: 'knee-dominant',
+        description: 'Fundamental leg strength assessment',
+        equipment: 'bodyweight',
+        placeholder: 'Bodyweight only',
+        icon: '🦵',
+        tips: [
+          'Start with bodyweight squats',
+          'Focus on full range of motion',
+          'Enter bodyweight if comfortable with squats'
+        ],
+        representsExercises: ['Squat', 'Leg Press', 'Goblet Squat'],
+        priority: 1
+      }
+    ];
+    
+    return {
+      assessmentExercises: basicExercises,
+      programExercises: ['Squat'],
+      estimatedCompletionTime: 5
+    };
   }
 }
 
 /**
- * Fallback assessment when program generation fails
- */
-function createFallbackAssessment(userProfile: UserProfile): {
-  assessmentExercises: AssessmentExercise[];
-  programExercises: string[];
-  estimatedCompletionTime: number;
-} {
-  const basicExercises = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press'];
-  const assessmentExercises = selectAssessmentExercises(basicExercises, userProfile);
-  
-  return {
-    assessmentExercises,
-    programExercises: basicExercises,
-    estimatedCompletionTime: assessmentExercises.length * 2.5
-  };
-}
-
-/**
- * Generate protocols for all program exercises based on assessment data
+ * Generate safe exercise protocols with strict weight validation
  */
 export function generateAllProtocols(
   assessmentData: Record<string, { weight: number; experienceLevel: string; goal: WorkoutGoal }>,
@@ -427,250 +431,199 @@ export function generateAllProtocols(
 ): Record<string, ExerciseProtocol> {
   const protocols: Record<string, ExerciseProtocol> = {};
   
-  programExercises.forEach(exerciseName => {
-    const mapping = findExerciseMapping(exerciseName);
-    if (!mapping) {
-      console.warn(`No mapping found for exercise: ${exerciseName}`);
-      return;
+  // Generate protocols with safety validation - no dangerous weights
+  Object.keys(assessmentData).forEach(exerciseName => {
+    const { weight, experienceLevel, goal } = assessmentData[exerciseName];
+    
+    // Safety check: validate weight is reasonable (max 10% increase from assessment)
+    const maxSafeWeight = weight * 1.1;
+    const safeWeight = Math.min(weight, maxSafeWeight);
+    
+    if (safeWeight !== weight) {
+      console.warn(`Capping ${exerciseName} from ${weight}kg to ${safeWeight}kg for safety`);
     }
     
-    // Find the assessment exercise that represents this program exercise
-    const representativeAssessment = assessmentExercises.find(ae => 
-      ae.representsExercises.includes(exerciseName) || ae.name === exerciseName
+    protocols[exerciseName] = createExerciseProtocol(
+      exerciseName,
+      safeWeight, // Use safe weight
+      getTargetRepsForGoal(goal),
+      findExerciseMapping(exerciseName)?.equipment || 'barbell',
+      goal
     );
-    
-    if (representativeAssessment && assessmentData[representativeAssessment.name]) {
-      const assessment = assessmentData[representativeAssessment.name];
-      
-      // Adjust weight with safety limits
-      let adjustedWeight = adjustWeightForExercise(
-        assessment.weight,
-        representativeAssessment.name,
-        exerciseName,
-        mapping
+  });
+
+  // Handle program exercises not in assessment with safety
+  programExercises.forEach(exerciseName => {
+    if (!protocols[exerciseName]) {
+      // Find assessment exercise that can represent this one
+      const representativeAssessment = assessmentExercises.find(
+        ex => ex.representsExercises.includes(exerciseName)
       );
       
-      // Apply experience-based safety limits
-      adjustedWeight = applyExperienceLimits(
-        adjustedWeight,
-        assessment.experienceLevel as 'beginner' | 'intermediate' | 'advanced',
-        mapping
-      );
-      
-      protocols[exerciseName] = createExerciseProtocol(
-        exerciseName,
-        adjustedWeight,
-        getTargetRepsForGoal(assessment.goal),
-        mapping.equipment,
-        assessment.goal,
-        mapping.primaryMuscles,
-        getFormCuesForExercise(mapping)
-      );
-    } else {
-      console.warn(`No assessment data found for exercise: ${exerciseName}. Using fallback.`);
-      protocols[exerciseName] = createExerciseProtocol(
-        exerciseName,
-        getFallbackWeight(mapping),
-        10, // Conservative rep target
-        mapping.equipment,
-        'hypertrophy',
-        mapping.primaryMuscles,
-        getFormCuesForExercise(mapping)
-      );
+      if (representativeAssessment && assessmentData[representativeAssessment.name]) {
+        const assessmentWeight = assessmentData[representativeAssessment.name].weight;
+        const targetMapping = findExerciseMapping(exerciseName);
+        
+        if (targetMapping) {
+          const adjustedWeight = adjustWeightForExercise(
+            assessmentWeight,
+            representativeAssessment.name,
+            exerciseName,
+            targetMapping
+          );
+          
+          protocols[exerciseName] = createExerciseProtocol(
+            exerciseName,
+            adjustedWeight,
+            getTargetRepsForGoal(assessmentData[representativeAssessment.name].goal),
+            targetMapping.equipment,
+            assessmentData[representativeAssessment.name].goal
+          );
+        }
+      } else {
+        // No assessment data available - require user input
+        console.warn(`No assessment data for ${exerciseName} - user must input weight manually`);
+      }
     }
   });
-  
+
   return protocols;
 }
 
 /**
- * Adjust weight when applying assessment to different but similar exercises
+ * Adjust weight between different exercises with conservative safety limits
  */
-function adjustWeightForExercise(
+export function adjustWeightForExercise(
   assessmentWeight: number,
   assessmentExercise: string,
   targetExercise: string,
   targetMapping: ExerciseMapping
 ): number {
-  // If it's the same exercise, use the same weight
+  // Conservative adjustment - maximum 10% difference between similar exercises
+  let adjustmentFactor = 1.0;
+  
+  // Same exercise = no adjustment
   if (assessmentExercise.toLowerCase() === targetExercise.toLowerCase()) {
     return assessmentWeight;
   }
   
-  // Much more conservative adjustment factors to prevent dangerous weight jumps
-  const adjustmentFactors: Record<string, Record<string, number>> = {
-    // Horizontal Push adjustments (more conservative)
-    'Bench Press': {
-      'Incline Bench Press': 0.85,
-      'Incline Dumbbell Press': 0.70, // Reduced from 0.75
-      'Dumbbell Bench Press': 0.75,   // Reduced from 0.8
-      'Dips': 0.80,         // Now accounts for added weight vs bodyweight
-      'Push-up': 0.40       // Much more conservative for bodyweight
-    },
-    
-    // Squat adjustments (significantly more conservative)
-    'Squat': {
-      'Front Squat': 0.80,           // Slightly reduced
-      'Goblet Squat': 0.60,          // Same
-      'Bulgarian Split Squat': 0.45,  // Reduced from 0.5
-      'Leg Press': 1.15              // SIGNIFICANTLY reduced from 1.4
-    },
-    
-    // Deadlift adjustments (more conservative)
-    'Deadlift': {
-      'Romanian Deadlift': 0.85,
-      'Sumo Deadlift': 0.95,
-      'Hip Thrust': 1.05        // Reduced from 1.1
-    },
-    
-    // Additional patterns for better coverage
-    'Overhead Press': {
-      'Dumbbell Shoulder Press': 0.70,
-      'Pike Push-up': 0.30,
-      'Lateral Raises': 0.20
-    },
-    
-    'Pull-up': {
-      'Lat Pulldown': 0.75,
-      'Assisted Pull-up': 0.60,
-      'Chin-up': 1.05
-    }
-  };
+  // Conservative adjustments between exercise variations
+  const assessmentLower = assessmentExercise.toLowerCase();
+  const targetLower = targetExercise.toLowerCase();
   
-  const factor = adjustmentFactors[assessmentExercise]?.[targetExercise] || 0.80; // More conservative default
-  const adjustedWeight = Math.round(assessmentWeight * factor);
+  // Only make very small adjustments for safety
+  if (assessmentLower.includes('barbell') && targetLower.includes('dumbbell')) {
+    adjustmentFactor = 0.7; // Dumbbells typically lighter per hand
+  } else if (assessmentLower.includes('dumbbell') && targetLower.includes('barbell')) {
+    adjustmentFactor = 1.2; // Barbell can be slightly heavier
+  } else if (assessmentLower.includes('machine') && !targetLower.includes('machine')) {
+    adjustmentFactor = 0.8; // Free weights typically require less weight than machines
+  } else if (!assessmentLower.includes('machine') && targetLower.includes('machine')) {
+    adjustmentFactor = 1.1; // Machines can handle slightly more weight
+  }
   
-  // Apply safety limits to prevent dangerous jumps
+  // Apply adjustment and safety limits
+  const adjustedWeight = assessmentWeight * adjustmentFactor;
   return applySafetyLimits(adjustedWeight, assessmentWeight, targetMapping);
 }
 
 /**
- * Apply safety limits to prevent dangerous weight jumps
+ * Apply strict safety limits to prevent dangerous weight suggestions
  */
-function applySafetyLimits(
-  adjustedWeight: number, 
-  originalWeight: number, 
-  targetMapping: ExerciseMapping
-): number {
-  // Maximum 20% increase from original weight (very conservative)
-  const maxIncrease = originalWeight * 1.20;
+export function applySafetyLimits(adjustedWeight: number, originalWeight: number, targetMapping: ExerciseMapping): number {
+  // Never allow more than 10% increase from assessment weight
+  const maxSafeWeight = originalWeight * 1.1;
+  const minSafeWeight = originalWeight * 0.7;
   
-  // Minimum decrease shouldn't go below 25% of original
-  const minDecrease = originalWeight * 0.25;
-  
-  // Apply equipment-specific minimums
-  const equipmentMinimums = {
-    'barbell': 20,
-    'dumbbell': 5,
-    'machine': 10,
-    'bodyweight': 0
+  // Also ensure weight is within reasonable bounds for equipment
+  const equipmentMaximums = {
+    barbell: 150,   // Conservative maximum for most users
+    dumbbell: 40,   // Per dumbbell
+    machine: 100,   // Machine stack limit
+    bodyweight: 50  // Added weight limit
   };
   
-  const equipmentMin = equipmentMinimums[targetMapping.equipment];
+  const equipmentMax = equipmentMaximums[targetMapping.equipment];
   
-  // Apply all limits
-  let safeWeight = Math.max(minDecrease, adjustedWeight);
-  safeWeight = Math.min(maxIncrease, safeWeight);
-  safeWeight = Math.max(equipmentMin, safeWeight);
+  // Apply all safety constraints
+  let safeWeight = Math.min(adjustedWeight, maxSafeWeight, equipmentMax);
+  safeWeight = Math.max(safeWeight, minSafeWeight);
   
-  return Math.round(safeWeight);
+  // Round to nearest 2.5kg for practical loading
+  return Math.round(safeWeight / 2.5) * 2.5;
 }
 
 /**
- * Apply experience-based limits to prevent unrealistic weights
+ * Apply conservative experience limits to prevent unrealistic weights
  */
-function applyExperienceLimits(
-  weight: number,
-  experience: 'beginner' | 'intermediate' | 'advanced',
-  mapping: ExerciseMapping
-): number {
-  // Exercise-specific maximums by experience level for major lifts
-  const exerciseMaxes = {
+export function applyExperienceLimits(weight: number, experience: 'beginner' | 'intermediate' | 'advanced', mapping: ExerciseMapping): number {
+  const experienceLimits = {
     beginner: {
-      'Bench Press': 60,
-      'Squat': 80,
-      'Deadlift': 100,
-      'Overhead Press': 40,
-      'Bent-over Row': 50
+      barbell: 60,    // Conservative for beginners
+      dumbbell: 20,   // Per dumbbell
+      machine: 50,    // Machine assistance helps beginners
+      bodyweight: 10  // Minimal added weight
     },
     intermediate: {
-      'Bench Press': 100,
-      'Squat': 120,
-      'Deadlift': 140,
-      'Overhead Press': 70,
-      'Bent-over Row': 80
+      barbell: 100,
+      dumbbell: 30,
+      machine: 75,
+      bodyweight: 25
     },
     advanced: {
-      'Bench Press': 150,
-      'Squat': 180,
-      'Deadlift': 200,
-      'Overhead Press': 100,
-      'Bent-over Row': 120
+      barbell: 150,   // Still conservative even for advanced
+      dumbbell: 40,
+      machine: 100,
+      bodyweight: 50
     }
   };
   
-  const exerciseMax = exerciseMaxes[experience][mapping.name as keyof typeof exerciseMaxes.beginner];
-  if (exerciseMax && weight > exerciseMax) {
-    console.warn(`Weight ${weight}kg capped at ${exerciseMax}kg for ${experience} level ${mapping.name}`);
-    weight = exerciseMax;
-  }
-  
-  return Math.round(weight);
+  const limit = experienceLimits[experience][mapping.equipment];
+  return Math.min(weight, limit);
 }
 
 /**
- * Get target reps based on training goal
+ * Get target repetitions based on training goal
  */
-function getTargetRepsForGoal(goal: WorkoutGoal): number {
+export function getTargetRepsForGoal(goal: WorkoutGoal): number {
   const repRanges = {
-    strength: 5,
-    hypertrophy: 10,
-    endurance: 15
+    strength: 5,      // Low reps for strength
+    hypertrophy: 10,  // Moderate reps for hypertrophy  
+    endurance: 15     // Higher reps for endurance
   };
+  
   return repRanges[goal];
 }
 
 /**
  * Get form cues for specific exercises
  */
-function getFormCuesForExercise(mapping: ExerciseMapping): string[] {
-  const formCues: Record<string, string[]> = {
-    'Bench Press': ['Retract shoulder blades', 'Lower bar to chest', 'Drive feet into floor'],
-    'Squat': ['Chest up', 'Knees track over toes', 'Hip hinge initiation'],
-    'Deadlift': ['Neutral spine', 'Bar close to body', 'Hip drive'],
-    'Overhead Press': ['Core tight', 'Press straight up', 'Full lockout']
+export function getFormCuesForExercise(mapping: ExerciseMapping): string[] {
+  const specificCues: Record<string, string[]> = {
+    'Squat': [
+      'Feet shoulder-width apart',
+      'Knees track over toes', 
+      'Chest up, core braced',
+      'Descend as if sitting back into chair'
+    ],
+    'Deadlift': [
+      'Bar close to shins',
+      'Neutral spine throughout movement',
+      'Drive through heels',
+      'Hinge at hips, not knees'
+    ],
+    'Bench Press': [
+      'Retract shoulder blades',
+      'Feet flat on floor',
+      'Control the descent',
+      'Drive up through chest'
+    ]
   };
   
-  return formCues[mapping.name] || ['Maintain good form', 'Control the weight', 'Full range of motion'];
-}
-
-/**
- * Conservative fallback weights for safety
- */
-function getFallbackWeight(mapping: ExerciseMapping): number {
-  const fallbackWeights: Record<string, number> = {
-    'Bench Press': 30,        
-    'Squat': 30,              
-    'Deadlift': 40,           
-    'Overhead Press': 20,     
-    'Bent-over Row': 25,      
-    'Pull-up': 0,             // Bodyweight
-    'Dips': 0,                // Bodyweight
-    'Goblet Squat': 15,
-    'Dumbbell Press': 12,
-    'Lateral Raises': 5
-  };
-  
-  // Apply equipment minimums
-  const equipmentMinimums = {
-    'barbell': 20,
-    'dumbbell': 5,
-    'machine': 10,
-    'bodyweight': 0
-  };
-  
-  const baseWeight = fallbackWeights[mapping.name] || 20;
-  const minWeight = equipmentMinimums[mapping.equipment];
-  
-  return Math.max(baseWeight, minWeight);
+  return specificCues[mapping.name] || [
+    'Maintain good posture',
+    'Control the movement',
+    'Focus on target muscles',
+    'Breathe properly throughout'
+  ];
 }
