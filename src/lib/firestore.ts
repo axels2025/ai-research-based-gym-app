@@ -301,7 +301,7 @@ export async function createWorkout(userId: string, workoutData: Omit<Workout, '
   return workout;
 }
 
-export async function getUserWorkouts(userId: string, programId?: string): Promise<Workout[]> {
+export async function getUserWorkouts(userId: string, programId?: string, weekFilter?: number): Promise<Workout[]> {
   let q = query(
     collection(db, 'workouts'),
     where('userId', '==', userId),
@@ -309,7 +309,15 @@ export async function getUserWorkouts(userId: string, programId?: string): Promi
     orderBy('day', 'asc')
   );
   
-  if (programId) {
+  if (programId && weekFilter) {
+    q = query(
+      collection(db, 'workouts'),
+      where('userId', '==', userId),
+      where('programId', '==', programId),
+      where('week', '==', weekFilter),
+      orderBy('day', 'asc')
+    );
+  } else if (programId) {
     q = query(
       collection(db, 'workouts'),
       where('userId', '==', userId),

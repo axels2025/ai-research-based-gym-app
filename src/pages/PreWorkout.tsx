@@ -187,27 +187,11 @@ const PreWorkout = () => {
         name: 'Barbell Bench Press',
         sets: 4,
         reps: '8-10',
-        weight: assessmentData?.generatedProtocols?.['Barbell Bench Press']?.workingWeight || 
-                (hasHistoricalData ? 185 : undefined),
+        weight: assessmentData?.generatedProtocols?.['Barbell Bench Press']?.workingWeight,
         restTime: 180,
         notes: 'Focus on controlled eccentric',
-        // Only include previous performance if user actually has data
-        previousPerformance: hasHistoricalData ? {
-          weight: 180,
-          reps: 8,
-          sets: 4,
-          rpe: 8,
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        } : undefined,
-        // Only show progression suggestions if user has performance history
-        progressionSuggestion: hasHistoricalData ? {
-          type: 'weight',
-          currentValue: 180,
-          suggestedValue: 185,
-          reason: 'Consistent performance over 3 weeks - ready for 5lb increase',
-          confidence: 'high',
-          implementationNotes: 'Add 5lbs to current weight. Maintain rep range.'
-        } : undefined,
+        previousPerformance: undefined, // Remove hardcoded performance data
+        progressionSuggestion: undefined, // Remove hardcoded progression suggestions
         estimatedRestTime: 180,
         muscleActivation: ['chest', 'shoulders', 'triceps'],
         difficultyLevel: 'intermediate',
@@ -218,37 +202,24 @@ const PreWorkout = () => {
           'Maintain tight core throughout movement'
         ],
         // Use assessment protocol if available
-        researchProtocol: assessmentData?.generatedProtocols?.['Barbell Bench Press'] ||
-                         (hasHistoricalData ? createExerciseProtocol(
-                           'Barbell Bench Press',
-                           185,
-                           8,
-                           'barbell',
-                           'strength'
-                         ) : undefined),
+        researchProtocol: assessmentData?.generatedProtocols?.['Barbell Bench Press'],
         setupRequired: !assessmentData?.generatedProtocols?.['Barbell Bench Press'] && !hasHistoricalData,
         equipmentType: 'barbell',
         trainingGoal: 'strength',
-        quickSetupWeight: assessmentData?.generatedProtocols?.['Barbell Bench Press']?.workingWeight ||
-                         (hasHistoricalData ? 185 : undefined),
-        hasHistoricalData: hasHistoricalData || !!assessmentData?.generatedProtocols?.['Barbell Bench Press'],
+        quickSetupWeight: assessmentData?.generatedProtocols?.['Barbell Bench Press']?.workingWeight,
+        hasHistoricalData: !!assessmentData?.generatedProtocols?.['Barbell Bench Press'],
         lastComfortableWeight: assessmentData?.generatedProtocols?.['Barbell Bench Press'] ? {
           weight: assessmentData.generatedProtocols['Barbell Bench Press'].workingWeight,
           reps: assessmentData.generatedProtocols['Barbell Bench Press'].targetReps,
           date: new Date()
-        } : (hasHistoricalData ? {
-          weight: 185,
-          reps: 8,
-          date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-        } : undefined)
+        } : undefined
       },
       {
         id: '2', 
         name: 'Overhead Press',
         sets: 3,
         reps: '10-12',
-        weight: assessmentData?.generatedProtocols?.['Overhead Press']?.workingWeight || 
-                (hasHistoricalData ? 95 : undefined),
+        weight: assessmentData?.generatedProtocols?.['Overhead Press']?.workingWeight,
         restTime: 120,
         notes: 'Strict form - no leg drive',
         previousPerformance: undefined, // No dummy data for new users
@@ -263,28 +234,19 @@ const PreWorkout = () => {
           'Full lockout at top'
         ],
         // Use assessment protocol if available  
-        researchProtocol: assessmentData?.generatedProtocols?.['Overhead Press'] ||
-                         (hasHistoricalData ? createExerciseProtocol(
-                           'Overhead Press',
-                           100,
-                           10,
-                           'barbell', 
-                           'hypertrophy'
-                         ) : undefined),
+        researchProtocol: assessmentData?.generatedProtocols?.['Overhead Press'],
         setupRequired: !assessmentData?.generatedProtocols?.['Overhead Press'] && !hasHistoricalData,
         equipmentType: 'barbell',
         trainingGoal: 'hypertrophy',
-        quickSetupWeight: assessmentData?.generatedProtocols?.['Overhead Press']?.workingWeight ||
-                         (hasHistoricalData ? 100 : undefined),
-        hasHistoricalData: hasHistoricalData || !!assessmentData?.generatedProtocols?.['Overhead Press']
+        quickSetupWeight: assessmentData?.generatedProtocols?.['Overhead Press']?.workingWeight,
+        hasHistoricalData: !!assessmentData?.generatedProtocols?.['Overhead Press']
       },
       {
         id: '3',
         name: 'Incline Dumbbell Press',
         sets: 3,
         reps: '12-15',
-        weight: assessmentData?.generatedProtocols?.['Incline Dumbbell Press']?.workingWeight || 
-                (hasHistoricalData ? 70 : undefined),
+        weight: assessmentData?.generatedProtocols?.['Incline Dumbbell Press']?.workingWeight,
         restTime: 90,
         notes: '45-degree incline',
         previousPerformance: undefined, // No dummy data for new users
@@ -298,28 +260,19 @@ const PreWorkout = () => {
           'Squeeze chest at top of movement',
           'Don\'t let dumbbells touch at top'
         ],
-        researchProtocol: assessmentData?.generatedProtocols?.['Incline Dumbbell Press'] ||
-                         (hasHistoricalData ? createExerciseProtocol(
-                           'Incline Dumbbell Press',
-                           75,
-                           12,
-                           'dumbbell',
-                           'hypertrophy' 
-                         ) : undefined),
+        researchProtocol: assessmentData?.generatedProtocols?.['Incline Dumbbell Press'],
         setupRequired: !assessmentData?.generatedProtocols?.['Incline Dumbbell Press'] && !hasHistoricalData,
         equipmentType: 'dumbbell',
         trainingGoal: 'hypertrophy',
-        quickSetupWeight: assessmentData?.generatedProtocols?.['Incline Dumbbell Press']?.workingWeight ||
-                         (hasHistoricalData ? 75 : undefined),
-        hasHistoricalData: hasHistoricalData || !!assessmentData?.generatedProtocols?.['Incline Dumbbell Press']
+        quickSetupWeight: assessmentData?.generatedProtocols?.['Incline Dumbbell Press']?.workingWeight,
+        hasHistoricalData: !!assessmentData?.generatedProtocols?.['Incline Dumbbell Press']
       },
       {
         id: '4',
         name: 'Dips',
         sets: 3,
         reps: '10-12',
-        weight: assessmentData?.generatedProtocols?.['Dips']?.workingWeight || 
-                (hasHistoricalData ? 25 : undefined), // Body weight + added weight
+        weight: assessmentData?.generatedProtocols?.['Dips']?.workingWeight,
         restTime: 90,
         notes: 'Add weight if bodyweight is too easy',
         previousPerformance: undefined,
@@ -333,27 +286,19 @@ const PreWorkout = () => {
           'Press up with control',
           'Avoid swinging or kipping'
         ],
-        researchProtocol: assessmentData?.generatedProtocols?.['Dips'] ||
-                         (hasHistoricalData ? createExerciseProtocol(
-                           'Dips',
-                           25,
-                           11,
-                           'bodyweight',
-                           'hypertrophy'
-                         ) : undefined),
+        researchProtocol: assessmentData?.generatedProtocols?.['Dips'],
         setupRequired: !assessmentData?.generatedProtocols?.['Dips'] && !hasHistoricalData,
         equipmentType: 'bodyweight',
         trainingGoal: 'hypertrophy',
-        quickSetupWeight: assessmentData?.generatedProtocols?.['Dips']?.workingWeight ||
-                         (hasHistoricalData ? 25 : undefined),
-        hasHistoricalData: hasHistoricalData || !!assessmentData?.generatedProtocols?.['Dips']
+        quickSetupWeight: assessmentData?.generatedProtocols?.['Dips']?.workingWeight,
+        hasHistoricalData: !!assessmentData?.generatedProtocols?.['Dips']
       },
       {
         id: '5',
         name: 'Lateral Raises',
         sets: 3,
         reps: '15-20',
-        weight: hasHistoricalData ? 20 : undefined,
+        weight: assessmentData?.generatedProtocols?.['Lateral Raises']?.workingWeight,
         restTime: 60,
         notes: 'Light weight, focus on form',
         previousPerformance: undefined,
@@ -367,25 +312,19 @@ const PreWorkout = () => {
           'Control the descent',
           'Avoid using momentum'
         ],
-        researchProtocol: hasHistoricalData ? createExerciseProtocol(
-          'Lateral Raises',
-          20,
-          17,
-          'dumbbell',
-          'hypertrophy'
-        ) : undefined,
-        setupRequired: !hasHistoricalData,
+        researchProtocol: assessmentData?.generatedProtocols?.['Lateral Raises'],
+        setupRequired: !assessmentData?.generatedProtocols?.['Lateral Raises'],
         equipmentType: 'dumbbell',
         trainingGoal: 'hypertrophy',
-        quickSetupWeight: hasHistoricalData ? 20 : undefined,
-        hasHistoricalData
+        quickSetupWeight: assessmentData?.generatedProtocols?.['Lateral Raises']?.workingWeight,
+        hasHistoricalData: !!assessmentData?.generatedProtocols?.['Lateral Raises']
       },
       {
         id: '6',
         name: 'Tricep Pushdowns',
         sets: 3,
         reps: '12-15',
-        weight: hasHistoricalData ? 50 : undefined,
+        weight: assessmentData?.generatedProtocols?.['Tricep Pushdowns']?.workingWeight,
         restTime: 60,
         notes: 'Cable machine or resistance band',
         previousPerformance: undefined,
@@ -399,18 +338,12 @@ const PreWorkout = () => {
           'Control the weight back up',
           'Don\'t lean into the movement'
         ],
-        researchProtocol: hasHistoricalData ? createExerciseProtocol(
-          'Tricep Pushdowns',
-          50,
-          13,
-          'machine',
-          'hypertrophy'
-        ) : undefined,
-        setupRequired: !hasHistoricalData,
+        researchProtocol: assessmentData?.generatedProtocols?.['Tricep Pushdowns'],
+        setupRequired: !assessmentData?.generatedProtocols?.['Tricep Pushdowns'],
         equipmentType: 'machine',
         trainingGoal: 'hypertrophy',
-        quickSetupWeight: hasHistoricalData ? 50 : undefined,
-        hasHistoricalData
+        quickSetupWeight: assessmentData?.generatedProtocols?.['Tricep Pushdowns']?.workingWeight,
+        hasHistoricalData: !!assessmentData?.generatedProtocols?.['Tricep Pushdowns']
       }
     ];
 
@@ -432,8 +365,8 @@ const PreWorkout = () => {
       workoutIntensity: 'moderate' as const,
       targetMuscleGroups: ['chest', 'shoulders', 'triceps'],
       equipmentNeeded: ['barbell', 'bench', 'dumbbells'],
-      // Only show previous workout comparison if user has historical data
-      previousWorkoutComparison: hasHistoricalData ? {
+      // Only show previous workout comparison if user has assessment data
+      previousWorkoutComparison: assessmentData ? {
         lastCompleted: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         performanceChange: 'improved' as const,
         volumeChange: 8.5

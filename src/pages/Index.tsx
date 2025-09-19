@@ -37,8 +37,8 @@ const Index = () => {
         } else {
           setProgram(activeProgram);
           
-          // Get workouts for this program
-          const userWorkouts = await getUserWorkouts(currentUser.uid, activeProgram.id);
+          // Get workouts for current week only
+          const userWorkouts = await getUserWorkouts(currentUser.uid, activeProgram.id, activeProgram.currentWeek);
           setWorkouts(userWorkouts);
         }
         
