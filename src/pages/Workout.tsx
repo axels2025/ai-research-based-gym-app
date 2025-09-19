@@ -84,6 +84,10 @@ export const Workout = () => {
   
   // Get current exercise's sets (either from research protocol or fallback)
   const getCurrentExerciseSets = () => {
+    if (!currentExercise) {
+      return [];
+    }
+    
     if (currentExercise.researchProtocol) {
       return [...currentExercise.researchProtocol.warmupSets, ...currentExercise.researchProtocol.workingSets];
     }
@@ -298,10 +302,11 @@ export const Workout = () => {
   }
 
   const totalSetsInWorkout = workout.exercises.reduce((total, exercise) => {
+    if (!exercise) return total;
     if (exercise.researchProtocol) {
       return total + exercise.researchProtocol.warmupSets.length + exercise.researchProtocol.workingSets.length;
     }
-    return total + exercise.sets;
+    return total + (exercise.sets || 0);
   }, 0);
   
   const completedSetsCount = completedSets.length;
