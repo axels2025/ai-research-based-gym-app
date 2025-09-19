@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dumbbell, Brain, TrendingUp, Zap, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { getActiveProgram, getUserWorkouts, initializeDefaultProgram, type WorkoutProgram, type Workout } from "@/lib/firestore";
+import { getActiveProgram, getUserWorkouts, initializeDefaultProgram, createQuickWorkout, type WorkoutProgram, type Workout } from "@/lib/firestore";
 import { toast } from "@/hooks/use-toast";
 import heroImage from "@/assets/gym-hero.jpg";
 
@@ -78,11 +78,22 @@ const Index = () => {
     loadUserData();
   }, [currentUser]);
 
-  const handleStartWorkout = (workoutId?: string) => {
+  const handleStartWorkout = async (workoutId?: string) => {
     if (workoutId) {
       navigate(`/pre-workout?id=${workoutId}`);
     } else {
-      navigate("/workout");
+      // Create a quick workout and navigate to it
+      if (currentUser) {
+        try {
+          const quickWorkout = await createQuickWorkout(currentUser.uid);
+          navigate(`/workout?id=${quickWorkout.id}`);
+        } catch (error) {
+          console.error('Failed to create quick workout:', error);
+          navigate("/pre-workout");
+        }
+      } else {
+        navigate("/pre-workout");
+      }
     }
   };
 
@@ -184,7 +195,7 @@ const Index = () => {
                     </p>
                   </div>
                   <Button 
-                    onClick={() => navigate('/workout')}
+                    onClick={() => handleStartWorkout()}
                     className="flex items-center gap-2"
                   >
                     <Plus className="w-4 h-4" />

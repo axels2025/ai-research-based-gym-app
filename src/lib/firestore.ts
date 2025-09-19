@@ -301,6 +301,24 @@ export async function createWorkout(userId: string, workoutData: Omit<Workout, '
   return workout;
 }
 
+// Create a quick bodyweight/minimal equipment workout
+export async function createQuickWorkout(userId: string): Promise<Workout> {
+  const quickWorkoutData = {
+    title: "Quick Workout",
+    week: 1,
+    day: 1,
+    rotation: 1,
+    rotationWeek: 1,
+    programId: 'quick',
+    exercises: 3, // Number of exercises, not the exercise objects
+    estimatedTime: 20,
+    isCompleted: false,
+    aiGenerated: false
+  };
+  
+  return await createWorkout(userId, quickWorkoutData);
+}
+
 export async function getUserWorkouts(userId: string, programId?: string, weekFilter?: number): Promise<Workout[]> {
   let q = query(
     collection(db, 'workouts'),

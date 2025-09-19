@@ -113,43 +113,84 @@ export const Workout = () => {
   // Load workout data on mount - require proper data or redirect to assessment
   useEffect(() => {
     const loadWorkout = async () => {
-      if (!workoutId && !currentUser) {
+      if (!currentUser) {
         setLoading(false);
-        toast({
-          title: 'Setup Required',
-          description: 'Please complete your assessment first.',
-          variant: 'destructive'
-        });
+        navigate('/pre-workout');
+        return;
+      }
+
+      if (!workoutId) {
+        setLoading(false);
         navigate('/pre-workout');
         return;
       }
 
       try {
-        // Try to load workout from database/assessment data
-        // This should come from proper data flow, not hardcoded data
-        if (workoutId) {
-          const workoutData = await getWorkoutById(workoutId);
-          if (workoutData) {
-            // Convert database workout to enhanced format
+        const workoutData = await getWorkoutById(workoutId);
+        if (workoutData) {
+          // For quick workouts, create default exercises since they're not stored with the workout
+          if (workoutData.programId === 'quick') {
+            const quickExercises: EnhancedExercise[] = [
+              {
+                id: 'pushups',
+                name: 'Push-ups',
+                sets: 3,
+                reps: '8-12',
+                lastWeight: 0,
+                suggestedWeight: 0, // Bodyweight exercise
+                restTime: 60,
+                equipmentType: 'bodyweight',
+                trainingGoal: 'hypertrophy'
+              },
+              {
+                id: 'squats',
+                name: 'Bodyweight Squats',
+                sets: 3,
+                reps: '10-15',
+                lastWeight: 0,
+                suggestedWeight: 0, // Bodyweight exercise
+                restTime: 60,
+                equipmentType: 'bodyweight',
+                trainingGoal: 'hypertrophy'
+              },
+              {
+                id: 'lunges',
+                name: 'Walking Lunges',
+                sets: 2,
+                reps: '8 each leg',
+                lastWeight: 0,
+                suggestedWeight: 0, // Bodyweight exercise
+                restTime: 45,
+                equipmentType: 'bodyweight',
+                trainingGoal: 'hypertrophy'
+              }
+            ];
+
             setWorkout({
-              name: workoutData.title || 'Workout',
-              exercises: [], // This should be populated from proper data
-              totalEstimatedTime: workoutData.estimatedTime || 45
+              name: workoutData.title || 'Quick Workout',
+              exercises: quickExercises,
+              totalEstimatedTime: workoutData.estimatedTime || 20
             });
           } else {
-            throw new Error('Workout not found');
+            // For regular workouts, we need the exercise data from somewhere else
+            // This is a placeholder - in a real app, exercises would come from the program/session
+            setWorkout({
+              name: workoutData.title || 'Workout',
+              exercises: [], // Empty until proper exercise loading is implemented
+              totalEstimatedTime: workoutData.estimatedTime || 45
+            });
           }
         } else {
-          throw new Error('No workout ID provided');
+          throw new Error('Workout not found');
         }
       } catch (error) {
         console.error('Error loading workout:', error);
         toast({
-          title: 'Setup Required',
-          description: 'Please complete your strength assessment first to get safe weight recommendations.',
+          title: 'Workout Not Found',
+          description: 'Redirecting to program overview.',
           variant: 'destructive'
         });
-        navigate('/pre-workout');
+        navigate('/');
         return;
       } finally {
         setLoading(false);
